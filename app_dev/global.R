@@ -23,18 +23,20 @@ library(shinyjs)
 library(shinyBS)
 library(giscoR)
 
-# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-# con <- dbConnect(
-#   bigrquery::bigquery(),
-#   project = "rgee-381312",
-#   dataset = "data_base",
-#   billing = "rgee-381312"
-# )
+## change this to wendy
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "rgee-381312",
+  dataset = "data_base",
+  billing = "rgee-381312"
+)
+
+
 
 
 ## country map
-# grd<-sf::st_read("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/postnummeromrade_wgs.shp")
-# grd<-st_as_sfc(grd)
+
 cntr<-gisco_get_countries(year = "2020",
                           epsg = "4326",
                           cache = TRUE,
@@ -48,11 +50,17 @@ cntr<-gisco_get_countries(year = "2020",
 
 coast<-gisco_get_coastallines()
 
+# coast<-st_read("R:/GeoSpatialData/SeaRegions/World_oceans/Original/ne_10m_ocean/ne_10m_ocean.shp")
+# bbcoast<-st_as_sfc(st_bbox(c(-20.742171, 28.025439, 43.066422, 72.61762)),crs = st_crs(coast))
+# sea<-st_crop(bbcoast,coast)
+
 map_cntr<- leaflet() %>%
   addProviderTiles(provider= "CartoDB.Positron")%>%
   addFeatures(st_sf(cntr), layerId = ~cntr$CNTR_ID)
 
 map_coast<- leaflet(st_sf(coast)) %>%
+  addPolygons(color = "blue", weight = 3, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.3)%>%
   addProviderTiles(provider= "CartoDB.Positron")%>%
   addDrawToolbar(targetGroup='drawPoly',
                  polylineOptions = F,
@@ -63,3 +71,5 @@ map_coast<- leaflet(st_sf(coast)) %>%
                  rectangleOptions = T,
                  singleFeature = FALSE,
                  editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
+
+ee_Initialize()
