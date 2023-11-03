@@ -2,7 +2,7 @@ fluidPage(
   theme = bslib::bs_theme(bootswatch = "cerulean"),
   titlePanel(title =  div(img(src="logo.PNG", width ='120'), 'Admin portal of geoprospective'), windowTitle = "Admin Geopros" ),
   tabsetPanel(id = "inTabset",
-              tabPanel(title = "Create new project", value = "p0",
+              tabPanel(title = "Create a new project", value = "p0",
                        br(),
                        h5("Here you can create a new project to map biodiversity and ecosystem services."),
                        br(),
@@ -10,13 +10,9 @@ fluidPage(
                        br(),
                        textInput("proj_descr","A short description of the project"),
                        br(),
-                       h5("Define the study area"),
-                       "Select your country of interest",
-                       mapedit::selectModUI("map_sel_cntry"),
-                       br(),
-                       actionButton("create_pr","create project"),
-                       br(),
-                       textOutput("projidtext")
+                       selectInput("projtype","What kind of project is it?",choices = c(" ","onshore","offshore"), selected = " "),
+                       uiOutput("type_dep")
+
 
               ),
               tabPanel(title = "Choose ecosystem services", value = "p1",

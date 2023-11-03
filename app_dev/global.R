@@ -45,6 +45,21 @@ cntr<-gisco_get_countries(year = "2020",
                           spatialtype = "RG",
                           country = NULL,
                           region = "Europe")
+
+coast<-gisco_get_coastallines()
+
 map_cntr<- leaflet() %>%
   addProviderTiles(provider= "CartoDB.Positron")%>%
-  addFeatures(st_sf(cntr), layerId = ~seq_len(length(cntr)))
+  addFeatures(st_sf(cntr), layerId = ~cntr$CNTR_ID)
+
+map_coast<- leaflet(st_sf(coast)) %>%
+  addProviderTiles(provider= "CartoDB.Positron")%>%
+  addDrawToolbar(targetGroup='drawPoly',
+                 polylineOptions = F,
+                 polygonOptions = F,
+                 circleOptions = F,
+                 markerOptions = F,
+                 circleMarkerOptions = F,
+                 rectangleOptions = T,
+                 singleFeature = FALSE,
+                 editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
