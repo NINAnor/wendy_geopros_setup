@@ -24,19 +24,37 @@ library(shinyBS)
 library(giscoR)
 
 ## change this to wendy
-bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/eu-wendy_service_account.json")
 con <- dbConnect(
   bigrquery::bigquery(),
-  project = "rgee-381312",
-  dataset = "data_base",
-  billing = "rgee-381312"
+  project = "eu-wendy",
+  dataset = "testWendy",
+  billing = "eu-wendy"
 )
 
+## define on - offshore min-max area km2
+on_min<-500
+on_max<-3000
+off_min<-500
+off_max<-10000
 
+# con <- dbConnect(
+#   bigrquery::bigquery(),
+#   project = "pareus",
+#   dataset = "admin_data",
+#   billing = "pareus"
+# )
+
+# con <- dbConnect(
+#   bigrquery::bigquery(),
+#   project = "rgee-381312",
+#   dataset = "data_base",
+#   billing = "rgee-381312"
+# )
+# es_all<-tbl(con, "test")
 
 
 ## country map
-
 cntr<-gisco_get_countries(year = "2020",
                           epsg = "4326",
                           cache = TRUE,
@@ -49,6 +67,7 @@ cntr<-gisco_get_countries(year = "2020",
                           region = "Europe")
 
 coast<-gisco_get_coastallines()
+
 
 # coast<-st_read("R:/GeoSpatialData/SeaRegions/World_oceans/Original/ne_10m_ocean/ne_10m_ocean.shp")
 # bbcoast<-st_as_sfc(st_bbox(c(-20.742171, 28.025439, 43.066422, 72.61762)),crs = st_crs(coast))

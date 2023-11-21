@@ -1,10 +1,19 @@
 function(input, output, session) {
-  hideTab(inputId = "inTabset", target = "p1")
-  hideTab(inputId = "inTabset", target = "p2")
-  hideTab(inputId = "inTabset", target = "p3")
-  hideTab(inputId = "inTabset", target = "p4")
 
-  observeEvent(input$projtype,{
+  output$cond_b1<-renderUI({
+    validate(
+      need(input$projtype != "", 'Provide a projtype'),
+      need(input$proj_nat_name != '', 'Provide a project name'),
+      need(input$proj_descr != '', 'Provide a proj description')
+    )
+    tagList(
+      actionButton('sub1', 'confirm', class='btn-primary'),
+      uiOutput("type_dep")
+    )
+
+  })
+
+  observeEvent(input$sub1,{
     if(input$projtype == "onshore"){
       output$type_dep<-renderUI(
         tagList(
@@ -28,6 +37,12 @@ function(input, output, session) {
         )
       )
     }
+    removeUI(selector = "div:has(>> #select)")
+    removeUI(selector = "#proj_nat_name")
+    removeUI(selector = "#proj_nat_name-label")
+    removeUI(selector = "#proj_descr")
+    removeUI(selector = "#proj_descr-label")
+    removeUI(selector = "#sub1")
   })
 
   output$cntr_text<-renderText("Select your country of interest")
@@ -39,16 +54,19 @@ function(input, output, session) {
 
       # cntry_sel<-mapedit::selectMap(map_cntr)
 
-      offshore_sel<-callModule(module = editMod,
+      #reactive values to store mapping
+      rv<-reactiveValues(
+        onshore_sel = reactive({}),
+        offshore_sel = reactive({})
+      )
+
+      rv$offshore_sel<-callModule(module = editMod,
                              leafmap=map_coast,
                              id="sel_offshore")
 
-  # offshore_sel<-mapedit::editMap(map_coast)
+   # offshore_sel<-mapedit::editMap(map_coast)
 
-  #reactive values to store mapping
-  rv<-reactiveValues(
-    onshore_sel = reactive({})
-  )
+
 
 
   sel_country<-eventReactive(input$save_countr,{
@@ -99,7 +117,7 @@ function(input, output, session) {
 
   })
 
-  ## for onshore:: a helper function to check if poly is inside country
+  ## for onshore:: a helper function to check if poly is inside country and correct size
   observe({
     req(rv$onshore_sel)
     req(sel_country)
@@ -122,16 +140,16 @@ function(input, output, session) {
       }else{
         area<-round(as.numeric(st_area(rectangles))/1000000,0)
 
-        if(area>15000){
+        if(area>on_max){
           output$overlay_result <- renderText({
-            paste0("<font color=\"#FF0000\"> <li>Your area is ",area ," km2, and thus too big, please draw a smaller area of max 15`000 km2<li/></font>")
+            paste0("<font color=\"#FF0000\"> <li>Your area is ",area ," km2, and thus too big, please draw a smaller area of max ",on_max," km2<li/></font>")
           })
           removeUI(
             selector = paste0("#savepoly"))
 
-        }else if(area<500){
+        }else if(area<on_min){
           output$overlay_result <- renderText({
-            paste0("<font color=\"#FF0000\"> <li>Your area is ",area, " km2, and thus too small, please draw a bigger area of min 500 km2<li/></font>")
+            paste0("<font color=\"#FF0000\"> <li>Your area is ",area, " km2, and thus too small, please draw a bigger area of min ",on_min," km2<li/></font>")
           })
           removeUI(
             selector = paste0("#savepoly"))
@@ -166,79 +184,97 @@ function(input, output, session) {
 
   })
 
-  ## for offshore:: a helper function to check poly area
-  # observe({
-  #   req(offshore_sel)
-  #
-  #   rectangles <- offshore_sel()$finished
-  #
-  #   n_poly<-nrow(as.data.frame(rectangles))
-  #
-  #   if(n_poly==1){
-  #     n_within<-nrow(as.data.frame(st_within(rectangles,coast)))
-  #
-  #     if(n_within<n_poly){
-  #       output$overlay_result2 <- renderText({
-  #         paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely inside offshore areas<li/></font>")
-  #       })
-  #       removeUI(
-  #         selector = paste0("#savepoly"))
-  #     }else{
-  #       area<-round(as.numeric(st_area(rectangles))/1000000,0)
-  #
-  #       if(area>15000){
-  #         output$overlay_result2 <- renderText({
-  #           paste0("<font color=\"#FF0000\"> <li>Your area is ",area ," km2, and thus too big, please draw a smaller area of max 15`000 km2<li/></font>")
-  #         })
-  #         removeUI(
-  #           selector = paste0("#savepoly"))
-  #
-  #       }else if(area<500){
-  #         output$overlay_result2 <- renderText({
-  #           paste0("<font color=\"#FF0000\"> <li>Your area is ",area, " km2, and thus too small, please draw a bigger area of min 500 km2<li/></font>")
-  #         })
-  #         removeUI(
-  #           selector = paste0("#savepoly"))
-  #
-  #       }else{
-  #         output$btn2<-renderUI(
-  #           actionButton("savepoly","save area")
-  #         )
-  #         output$overlay_result2 <- renderText({
-  #           paste0("Your area is ",area, " km2, Save your area now")
-  #
-  #         })
-  #       }
-  #
-  #     }
-  #
-  #   }else if(n_poly>1){
-  #     output$overlay_result2 <- renderText({
-  #       paste("<font color=\"#FF0000\"> <li>Remove areas, just one area allowed<li/></font>")
-  #     })
-  #     removeUI(
-  #       selector = paste0("#savepoly"))
-  #
-  #   }else if(n_poly==0){
-  #     output$overlay_result2 <- renderText({
-  #       paste("<font color=\"#FF0000\"><li>Please draw one area<li/></font>")
-  #     })
-  #     removeUI(
-  #       selector = paste0("#savepoly"))
-  #
-  #   }
-  #
-  # })
+  ## for offshore:: a helper function to check poly area is outside coast line and correct size
+  observe({
+    req(rv$offshore_sel)
 
+    rectangles <- rv$offshore_sel()$finished
 
+    n_poly<-nrow(as.data.frame(rectangles))
+
+    if(n_poly==1){
+      n_inter<-nrow(as.data.frame(st_intersects(rectangles,coast)))
+
+      if(n_inter==n_poly){
+        output$overlay_result2 <- renderText({
+          paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely inside offshore areas<li/></font>")
+        })
+        removeUI(
+          selector = paste0("#savepoly"))
+      }else{
+        area<-round(as.numeric(st_area(rectangles))/1000000,0)
+
+        if(area>off_max){
+          output$overlay_result2 <- renderText({
+            paste0("<font color=\"#FF0000\"> <li>Your area is ",area ," km2, and thus too big, please draw a smaller area of max ", off_max ," km2<li/></font>")
+          })
+          removeUI(
+            selector = paste0("#savepoly"))
+
+        }else if(area<off_min){
+          output$overlay_result2 <- renderText({
+            paste0("<font color=\"#FF0000\"> <li>Your area is ",area, " km2, and thus too small, please draw a bigger area of min ",off_min ," km2<li/></font>")
+          })
+          removeUI(
+            selector = paste0("#savepoly"))
+
+        }else{
+          output$btn2<-renderUI(
+            actionButton("savepoly","save area")
+          )
+          output$overlay_result2 <- renderText({
+            paste0("Your area is ",area, " km2, Save your area now")
+
+          })
+        }
+
+      }
+
+    }else if(n_poly>1){
+      output$overlay_result2 <- renderText({
+        paste("<font color=\"#FF0000\"> <li>Remove areas, just one area allowed<li/></font>")
+      })
+      removeUI(
+        selector = paste0("#savepoly"))
+
+    }else if(n_poly==0){
+      output$overlay_result2 <- renderText({
+        paste("<font color=\"#FF0000\"><li>Please draw one area<li/></font>")
+      })
+      removeUI(
+        selector = paste0("#savepoly"))
+
+    }
+
+  })
+
+  ## save poly in wendy gee asset
   observeEvent(input$savepoly,{
-    study_area<-rv$onshore_sel()$finished
-    sel_country<-sel_country()
 
-    req(study_area, cancelOutput = FALSE)
-    # study_area<-onshore_sel$finished
-    study_area<-study_area%>%select()
+    if(input$projtype=="onshore"){
+
+      removeUI(selector = paste0("#sel_onshore","-map"))
+      removeUI(
+        selector = "#overlay_result")
+
+      study_area<-rv$onshore_sel()$finished
+      sel_country<-sel_country()
+      study_area<-study_area%>%select()
+      study_area$cntrID<-sel_country$ISO3_CODE
+    }else{
+      study_area<-rv$offshore_sel()$finished
+      removeUI(selector = paste0("#sel_offshore","-map"))
+      removeUI(
+        selector = "#overlay_result2")
+      study_area<-study_area%>%select()
+      study_area$cntrID<-"off"
+    }
+
+    # req(study_area, cancelOutput = FALSE)
+
+
     study_area$siteID<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
+    study_area$area_km2<-round(as.numeric(st_area(study_area))/1000000,0)
 
     study_area$siteTYPE <-input$projtype
     study_area$siteNAME <-input$name
@@ -246,9 +282,7 @@ function(input, output, session) {
 
     study_area$siteCREATOR <-Sys.getenv("USERNAME")
 
-    study_area$cntrID<-sel_country$ISO3_CODE
-
-    study_area$siteSTATUS<-"created_active"
+    study_area$siteSTATUS<-"created_noES_defined"
 
     study_area$siteCREATETIME<-Sys.time()
 
@@ -278,6 +312,15 @@ function(input, output, session) {
     # bq_table_upload(players_table, geo_js_df)
 
     ## upload as bq spatial table to WENDY google cloud
+
+    insertUI(selector = "#savepoly", where = "afterEnd",
+             ui=tagList(
+               textOutput("proj_id")
+             ))
+    output$proj_id<-renderText(paste0("Your study area has been saved please save the following study id: ",study_area$siteID," which is used for the mapping of ecosystem services and the study management"))
+    removeUI(
+      selector = "#savepoly")
+
 
   })
 
