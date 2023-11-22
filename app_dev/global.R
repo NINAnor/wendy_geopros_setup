@@ -24,11 +24,11 @@ library(shinyBS)
 library(giscoR)
 
 ## change this to wendy
-bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/eu-wendy_service_account.json")
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/eu-wendy-92974cdf189d.json")
 con <- dbConnect(
   bigrquery::bigquery(),
   project = "eu-wendy",
-  dataset = "testWendy",
+  dataset = "integrated_wendy",
   billing = "eu-wendy"
 )
 
@@ -95,4 +95,5 @@ map_coast<- leaflet(st_sf(coast)) %>%
 
 ee_Initialize()
 
-es_descr<-read.csv("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/es_descr.csv")
+es_descr<-tbl(con, "es_descr")
+es_descr<-es_descr%>%collect()

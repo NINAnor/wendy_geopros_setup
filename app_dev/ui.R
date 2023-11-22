@@ -15,14 +15,10 @@ fluidPage(
 
 
               ),
-              # tabPanel(title = "Choose ecosystem services", value = "p1",
-              #          # mod_define_study_area_ui("study_area")
-              #          ),
-              tabPanel(title = "Explore study status", value = "p2",
-                       # mod_explore_studies_ui("explore_projects")
-                       ),
-              tabPanel(title = "Manage studies", value = "p3",
-                       # mod_manage_study_ui("manage_proj")
+              tabPanel(title = "Explore & manage studies", value = "p2",
+                       h5("Insert your study  ID to inspect and modify the study status"),
+                       br(),
+                       textInput("stud_ID_in",""),
                        ),
               tabPanel(title = "Consite", value = "p4",
                        h5("You can now proceed within the consite tool to balance natural values and energy production")
