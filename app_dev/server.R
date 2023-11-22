@@ -249,31 +249,27 @@ function(input, output, session) {
   })
 
   ## save poly in wendy gee asset
-  observeEvent(input$savepoly,{
+
+  siteID<-eventReactive(input$savepoly,{
+    siteID<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
+  })
+
+  study_area<-eventReactive(input$savepoly,{
+    req(siteID)
+    siteID<-siteID()
 
     if(input$projtype=="onshore"){
-
-      removeUI(selector = paste0("#sel_onshore","-map"))
-      removeUI(
-        selector = "#overlay_result")
-
       study_area<-rv$onshore_sel()$finished
       sel_country<-sel_country()
       study_area<-study_area%>%select()
       study_area$cntrID<-sel_country$ISO3_CODE
     }else{
       study_area<-rv$offshore_sel()$finished
-      removeUI(selector = paste0("#sel_offshore","-map"))
-      removeUI(
-        selector = "#overlay_result2")
       study_area<-study_area%>%select()
       study_area$cntrID<-"off"
     }
 
-    # req(study_area, cancelOutput = FALSE)
-
-
-    study_area$siteID<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
+    study_area$siteID<-siteID
     study_area$area_km2<-round(as.numeric(st_area(study_area))/1000000,0)
 
     study_area$siteTYPE <-input$projtype
@@ -282,26 +278,47 @@ function(input, output, session) {
 
     study_area$siteCREATOR <-Sys.getenv("USERNAME")
 
-    study_area$siteSTATUS<-"created_noES_defined"
-
     study_area$siteCREATETIME<-Sys.time()
+    study_area
+
+
+  })
+
+  observeEvent(input$savepoly,{
+    req(study_area)
+    study_area<-study_area()
+    print("1")
+    if(input$projtype=="onshore"){
+
+      removeUI(selector = paste0("#sel_onshore","-map"))
+      removeUI(
+        selector = "#overlay_result")
+
+    }else{
+      removeUI(selector = paste0("#sel_offshore","-map"))
+      removeUI(
+        selector = "#overlay_result2")
+    }
 
     ee_study<-study_area
     ee_study$siteCREATETIME<-as.character(ee_study$siteCREATETIME)
     ee_study<-sf_as_ee(ee_study)
 
+
+    ## save geom on gee
     assetId<-paste0("projects/eu-wendy/assets/study_sites/",as.character(study_area$siteID))
     # ee_study <- ee_study$set('siteID', as.character(study_area$siteID),
     #                              'cntrID', as.character(study_area$cntrID))
-    start_time<-Sys.time()
-    task_tab <- ee_table_to_asset(
-      collection = ee_study,
-      description = "test upload study area",
-      assetId = assetId
-    )
+    # start_time<-Sys.time()
+    # task_tab <- ee_table_to_asset(
+    #   collection = ee_study,
+    #   description = "test upload study area",
+    #   assetId = assetId
+    # )
+    #
+    # task_tab$start()
 
-    task_tab$start()
-
+    ## upload as bq spatial table to WENDY google cloud
     # geo <- sf_geojson(study_area, atomise = TRUE)
     # st_write(study_area,"test.geojson")
     # geo1 <- sf_geojson(study_area, atomise = FALSE)
@@ -311,18 +328,122 @@ function(input, output, session) {
     # players_table = bq_table(project = "rgee-381312", dataset = "data_base", table = "test_new")
     # bq_table_upload(players_table, geo_js_df)
 
-    ## upload as bq spatial table to WENDY google cloud
+    #
 
     insertUI(selector = "#savepoly", where = "afterEnd",
              ui=tagList(
-               textOutput("proj_id")
+               # textOutput("proj_id"),
+               br(),
+               h5("Select the ecosystem services that are relevant to map in your study area"),
+               br(),
+               DT::dataTableOutput('es_descr'),
+               #
+               uiOutput("cond_save_es")
              ))
-    output$proj_id<-renderText(paste0("Your study area has been saved please save the following study id: ",study_area$siteID," which is used for the mapping of ecosystem services and the study management"))
+
     removeUI(
       selector = "#savepoly")
 
 
   })
+
+  output$es_descr <- renderDT({
+      datatable(es_descr, selection = 'multiple', options = list(pageLength = 15))
+
+
+  })
+
+  observe({
+    req(input$es_descr_rows_selected)
+
+    if(length(input$es_descr_rows_selected)!=0){
+      n_es_vec<-c("",1:length(input$es_descr_rows_selected))
+      output$cond_save_es<-renderUI(
+        tagList(
+          selectInput("n_es","how many es should each participant map", n_es_vec, selected = ""),
+          uiOutput("cond_save_es2")
+        )
+      )
+    }else{
+      output$cond_save_es<-renderUI(
+        h5("select at least one es")
+      )
+    }
+  })
+
+  observe({
+    req(input$n_es)
+
+    if(input$n_es!=""){
+      output$cond_save_es2<-renderUI(
+        actionButton("save_es", "save selection")
+      )
+    }else{
+      output$cond_save_es2<-renderUI(
+        h5("select a number of ES to be mapped")
+      )
+    }
+  })
+
+  observeEvent(input$save_es,{
+    siteID<-siteID()
+    study_area<-study_area()
+
+    ### clean ui
+    insertUI(selector = "#save_es", where = "afterEnd",
+             ui=tagList(
+               br(),
+               textOutput("stud_id")
+             )
+    )
+
+    output$stud_id<-renderText(paste0("Your study area has been saved please save the following study id: ",study_area$siteID," which is used for the mapping of ecosystem services and the study management"))
+
+    removeUI(selector = "#es_descr")
+    removeUI(selector = "#es_descr")
+    removeUI(selector = "#cond_save_es")
+    removeUI(selector = "#n_es")
+    removeUI(selector = "#cond_save_es2")
+
+    study_area$siteSTATUS<-"created_avtive"
+    study_area$n_es_mapping<-input$n_es
+
+    selected_es <- es_descr[input$es_descr_rows_selected,  ]
+    selected_es$siteID<-rep(siteID,nrow(selected_es))
+    #save selected es in tab
+    file <-paste("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/", Sys.Date(), "_es.csv", sep = "")
+    write.csv(selected_es, file, row.names = FALSE)
+
+    ## save study area info
+    study_area<-as.data.frame(study_area%>%st_drop_geometry())
+    file2 <-paste("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/", Sys.Date(), "_siteDat.csv", sep = "")
+    write.csv(study_area, file2, row.names = FALSE)
+
+  })
+
+  # Observe the selected rows
+  # observeEvent(input$mytable_rows_selected, {
+  #   selected_rows <- input$es_descr_rows_selected
+  #   output$selectedRowsText <- renderText({
+  #     paste("Selected Rows: ", paste(selected_rows, collapse = ", "))
+  #   })
+  # })
+
+  # Function to save selected rows
+  # output$save_es <- downloadHandler(
+  #   # studyID<-studyID()
+  #   filename = function() {
+  #     paste("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/", Sys.Date(), ".csv", sep = "")
+  #   },
+  #   content = function(file) {
+  #     selected_rows <- input$es_descr_rows_selected
+  #     if (length(selected_rows) > 0) {
+  #       selected_data <- data[selected_rows, ]
+  #       # selected_data$siteID<-rep("ABC",nrow(selected_data))
+  #       write.csv(selected_data, file, row.names = FALSE)
+  #     }
+  #   }
+  # )
 
 
 

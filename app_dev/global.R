@@ -32,6 +32,8 @@ con <- dbConnect(
   billing = "eu-wendy"
 )
 
+
+
 ## define on - offshore min-max area km2
 on_min<-500
 on_max<-3000
@@ -40,9 +42,9 @@ off_max<-10000
 
 # con <- dbConnect(
 #   bigrquery::bigquery(),
-#   project = "pareus",
-#   dataset = "admin_data",
-#   billing = "pareus"
+#   project = "publicdata",
+#   dataset = "samples",
+#   billing = ""
 # )
 
 # con <- dbConnect(
@@ -92,3 +94,5 @@ map_coast<- leaflet(st_sf(coast)) %>%
                  editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
 
 ee_Initialize()
+
+es_descr<-read.csv("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/es_descr.csv")

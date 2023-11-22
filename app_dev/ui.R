@@ -15,9 +15,9 @@ fluidPage(
 
 
               ),
-              tabPanel(title = "Choose ecosystem services", value = "p1",
-                       # mod_define_study_area_ui("study_area")
-                       ),
+              # tabPanel(title = "Choose ecosystem services", value = "p1",
+              #          # mod_define_study_area_ui("study_area")
+              #          ),
               tabPanel(title = "Explore study status", value = "p2",
                        # mod_explore_studies_ui("explore_projects")
                        ),
