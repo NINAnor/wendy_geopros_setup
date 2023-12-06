@@ -421,9 +421,7 @@ function(input, output, session) {
 
     ## save study area info
     study_area<-as.data.frame(study_area%>%st_drop_geometry())
-    # file2 <-paste("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/", Sys.Date(), "_siteDat.csv", sep = "")
-    # write.csv(study_area, file2, row.names = FALSE)
-    # bq_table_upload(study_site, study_area)
+
     insert_upload_job("eu-wendy", "integrated_wendy", "study_site", study_area)
 
     ### clean ui
@@ -443,29 +441,56 @@ function(input, output, session) {
 
   })
 
-  # Observe the selected rows
-  # observeEvent(input$mytable_rows_selected, {
-  #   selected_rows <- input$es_descr_rows_selected
-  #   output$selectedRowsText <- renderText({
-  #     paste("Selected Rows: ", paste(selected_rows, collapse = ", "))
-  #   })
-  # })
+ ############# tab 2 check and modify status
+  actual_stat<-eventReactive(input$studID_in,{
+    actual_stat<-as.character(studies%>%filter(siteID == input$studID_in)%>%select(siteSTATUS))
+  })
 
-  # Function to save selected rows
-  # output$save_es <- downloadHandler(
-  #   # studyID<-studyID()
-  #   filename = function() {
-  #     paste("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/", Sys.Date(), ".csv", sep = "")
-  #   },
-  #   content = function(file) {
-  #     selected_rows <- input$es_descr_rows_selected
-  #     if (length(selected_rows) > 0) {
-  #       selected_data <- data[selected_rows, ]
-  #       # selected_data$siteID<-rep("ABC",nrow(selected_data))
-  #       write.csv(selected_data, file, row.names = FALSE)
-  #     }
-  #   }
-  # )
+  observeEvent(input$studID_in,{
+    req(actual_stat)
+    actual_stat<-actual_stat()
+    if(input$studID_in %in% studies$siteID){
+      output$cond_b2<-renderUI({
+        tagList(
+          h5(paste0("The study ",input$studID_in, " has status: ",actual_stat)),
+          actionButton("check_study","check status"),
+          uiOutput("cond_b3")
+          )
+      })
+    }else{
+      output$cond_b2<-renderUI({
+        h5("invalid study id")
+      })
+    }
+  })
+
+  observeEvent(input$check_study,{
+    actual_stat<-actual_stat()
+    if(actual_stat == "created_active"){
+      es_mapping1<-tbl(con, "es_mappingR1")
+      a<-as.character(input$studID_in)
+      es_mapping1<-es_mapping1%>%filter(siteID == a & poss_mapping == "Yes")%>%
+        group_by(esID)%>%summarise(n_maps = n_distinct(userID))%>%collect()
+
+      output$cond_b3<-renderUI({
+        tagList(
+          DTOutput("tab_map")
+        )
+      output$tab_map<-renderDT(es_mapping1)
+
+      })
+    ## status 2
+    }else if(actual_stat == "round1_closed"){
+
+    }else if(actual_stat == "round2_open"){
+
+    }else{
+
+    }
+
+  })
+
+
 
 
 

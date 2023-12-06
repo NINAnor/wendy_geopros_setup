@@ -18,7 +18,10 @@ fluidPage(
               tabPanel(title = "Explore & manage studies", value = "p2",
                        h5("Insert your study  ID to inspect and modify the study status"),
                        br(),
-                       textInput("stud_ID_in",""),
+                       textInput("studID_in",""),
+                       uiOutput("cond_b2"),
+
+                       uiOutput("status_ui")
                        ),
               tabPanel(title = "Consite", value = "p4",
                        h5("You can now proceed within the consite tool to balance natural values and energy production")

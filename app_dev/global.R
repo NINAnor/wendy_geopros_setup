@@ -35,7 +35,7 @@ con <- dbConnect(
 
 
 ## define on - offshore min-max area km2
-on_min<-500
+on_min<-50
 on_max<-3000
 off_min<-500
 off_max<-10000
@@ -97,3 +97,6 @@ ee_Initialize()
 
 es_descr<-tbl(con, "es_descr")
 es_descr<-es_descr%>%collect()
+
+studies<-tbl(con,"study_site")
+studies<-studies%>%collect()
