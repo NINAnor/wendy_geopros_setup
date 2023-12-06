@@ -93,10 +93,11 @@ map_coast<- leaflet(st_sf(coast)) %>%
                  singleFeature = FALSE,
                  editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
 
-ee_Initialize()
+
 
 es_descr<-tbl(con, "es_descr")
 es_descr<-es_descr%>%collect()
 
 studies<-tbl(con,"study_site")
 studies<-studies%>%collect()
+studies$siteCREATETIME<-as.POSIXct(studies$siteCREATETIME)

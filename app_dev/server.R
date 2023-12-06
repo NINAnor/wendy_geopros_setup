@@ -14,6 +14,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$sub1,{
+    ee_Initialize()
     if(input$projtype == "onshore"){
       output$type_dep<-renderUI(
         tagList(
@@ -408,7 +409,7 @@ function(input, output, session) {
 
 
 
-    study_area$siteSTATUS<-"created_avtive"
+    study_area$siteSTATUS<-"round1_open"
     study_area$siteNMAPPING<-as.integer(input$n_es)
 
     selected_es <- es_descr[input$es_descr_rows_selected,  ]
@@ -443,7 +444,7 @@ function(input, output, session) {
 
  ############# tab 2 check and modify status
   actual_stat<-eventReactive(input$studID_in,{
-    actual_stat<-as.character(studies%>%filter(siteID == input$studID_in)%>%select(siteSTATUS))
+    actual_stat<-as.character(studies%>%filter(siteID == input$studID_in & siteCREATETIME == max(siteCREATETIME))%>%select(siteSTATUS))
   })
 
   observeEvent(input$studID_in,{
@@ -464,23 +465,58 @@ function(input, output, session) {
     }
   })
 
-  observeEvent(input$check_study,{
+  stats<-eventReactive(input$check_study,{
     actual_stat<-actual_stat()
-    if(actual_stat == "created_active"){
-      es_mapping1<-tbl(con, "es_mappingR1")
+    if(actual_stat == "created_avtive"){
+      stats<-tbl(con, "es_mappingR1")
       a<-as.character(input$studID_in)
-      es_mapping1<-es_mapping1%>%filter(siteID == a & poss_mapping == "Yes")%>%
+      stats<-stats%>%filter(siteID == a & poss_mapping == "Yes")%>%
         group_by(esID)%>%summarise(n_maps = n_distinct(userID))%>%collect()
+    }
+  })
+
+  observeEvent(input$check_study,{
+    req(stats)
+    actual_stat<-actual_stat()
+    stats<-stats()
+    removeUI(selector = "#studID_in")
+
+    if(actual_stat == "round1_open"){
+
 
       output$cond_b3<-renderUI({
-        tagList(
-          DTOutput("tab_map")
+        ui=tagList(
+          tableOutput('status_r1'),
+          uiOutput("cond_b4")
         )
-      output$tab_map<-renderDT(es_mapping1)
 
       })
+      if(min(stats$n_maps)<2){
+        output$cond_b4<-renderUI({
+          "To close round 1, at least 2 maps per ES are needed"
+        })
+      }else{
+        output$cond_b4<-renderUI({
+          tagList(
+            h5("If you want, you can now close round 1"),
+            actionButton("close1","close round 1")
+          )
+
+        })
+      }
+
+      output$status_r1 <- renderTable({as.data.frame(stats)})
+      removeUI(selector = "#check_study")
     ## status 2
     }else if(actual_stat == "round1_closed"){
+      output$cond_b3<-renderUI({
+        ui=tagList(
+          h5("Postprocessing of R1 is done, you can open R2"),
+          actionButton("open2","open round2")
+        )
+
+      })
+
 
     }else if(actual_stat == "round2_open"){
 
@@ -490,10 +526,63 @@ function(input, output, session) {
 
   })
 
+  ###close round1
+  observeEvent(input$close1,{
+    #create CV map per ES of projects
+    img_assetid_ind<-"projects/eu-wendy/assets/es_mapping/es_map_ind"
+    img_assetid_all <- "projects/eu-wendy/assets/es_mapping/es_map_all/"
 
+    ## study geom from siteID
+    stud_geom_id <- paste0('projects/eu-wendy/assets/study_sites/', input$studID_in)
+    stud_geom <- ee$FeatureCollection(stud_geom_id)$geometry()
 
+    for(n in 1: nrow(stats)){
+      esID<-stats$esID[n]
 
+      es_col<-ee$ImageCollection(img_assetid_ind)$select("probability")$filter(
+        ee$Filter$eq("esID",esID))$filter(
+          ee$Filter$eq("siteID",as.character(input$studID_in)))$filter(ee$Filter$eq("delphi_round",1))
 
+      es_mean <- es_col$reduce(ee$Reducer$mean())
+      es_stdDev = es_col$reduce(ee$Reducer$stdDev())
+      es_coef_var = es_stdDev$divide(es_mean)
 
+      # img_id<-paste0(img_assetid,"test")
+      img_id<-paste0(img_assetid_all, as.character(input$studID_in),"_",esID,"CV_1")
+      #
+      # #set features of img
+      es_coef_var <- es_coef_var$set('esID', esID,
+                                   'siteID', as.character(input$studID_in),
+                                   'delphi_round', 1,
+                                   'stats', "CV")
+
+      task_img <- ee_image_to_asset(
+        image = es_coef_var,
+        assetId = img_id,
+        overwrite = T,
+        region = stud_geom
+      )
+
+      task_img$start()
+    }
+
+    #overwrite status in DB
+    stud_new<-studies%>%filter(siteID == input$studID_in)
+    stud_new$siteSTATUS <-"round1_closed"
+    stud_new$siteCREATETIME<-Sys.time()
+    # Execute the update query
+    insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
+
+  })
+
+  ###open round2
+  observeEvent(input$open2,{
+    stud_new<-studies%>%filter(siteID == input$studID_in)
+    stud_new$siteSTATUS <-"round2_open"
+    stud_new$siteCREATETIME<-Sys.time()
+    # Execute the update query
+    insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
+
+  })
 
 }
