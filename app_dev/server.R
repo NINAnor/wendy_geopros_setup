@@ -534,7 +534,17 @@ function(input, output, session) {
 
     ## study geom from siteID
     stud_geom_id <- paste0('projects/eu-wendy/assets/study_sites/', input$studID_in)
-    stud_geom <- ee$FeatureCollection(stud_geom_id)$geometry()
+    stud_geom <- ee$FeatureCollection(stud_geom_id)
+    sf_stud_geom<-ee_as_sf(stud_geom)
+    coords <- st_coordinates(sf_stud_geom)
+    coords<-as.data.frame(coords[,c(1,2)])
+
+    geometry <- ee$Geometry$Rectangle(
+      coords = c(min(coords$X), min(coords$Y), max(coords$X), max(coords$Y)),
+      proj = "EPSG:4326",
+      geodesic = FALSE
+    )
+
 
     for(n in 1: nrow(stats)){
       esID<-stats$esID[n]
@@ -543,8 +553,16 @@ function(input, output, session) {
         ee$Filter$eq("esID",esID))$filter(
           ee$Filter$eq("siteID",as.character(input$studID_in)))$filter(ee$Filter$eq("delphi_round",1))
 
-      es_mean <- es_col$reduce(ee$Reducer$mean())
-      es_stdDev = es_col$reduce(ee$Reducer$stdDev())
+
+      es_mean <- es_col$reduce(ee$Reducer$mean())$reproject(
+        crs= 'EPSG:4326',
+        scale= 100
+      )
+
+      es_stdDev = es_col$reduce(ee$Reducer$stdDev())$reproject(
+        crs= 'EPSG:4326',
+        scale= 100
+      )
       es_coef_var = es_stdDev$divide(es_mean)
 
       # img_id<-paste0(img_assetid,"test")
@@ -557,10 +575,11 @@ function(input, output, session) {
                                    'stats', "CV")
 
       task_img <- ee_image_to_asset(
+        # image = es_coef_var$select("probability_stdDev"),
         image = es_coef_var,
         assetId = img_id,
         overwrite = T,
-        region = stud_geom
+        region = geometry
       )
 
       task_img$start()
