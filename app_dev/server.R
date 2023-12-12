@@ -14,7 +14,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$sub1,{
-    ee_Initialize()
+    ee_Initialize("reto.spielhofer@nina.no")
     if(input$projtype == "onshore"){
       output$type_dep<-renderUI(
         tagList(
