@@ -14,7 +14,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$sub1,{
-    ee_Initialize("reto.spielhofer@nina.no")
+
     if(input$projtype == "onshore"){
       output$type_dep<-renderUI(
         tagList(
@@ -467,7 +467,7 @@ function(input, output, session) {
 
   stats<-eventReactive(input$check_study,{
     actual_stat<-actual_stat()
-    if(actual_stat == "created_avtive"){
+    if(actual_stat == "round1_open"){
       stats<-tbl(con, "es_mappingR1")
       a<-as.character(input$studID_in)
       stats<-stats%>%filter(siteID == a & poss_mapping == "Yes")%>%
@@ -528,6 +528,7 @@ function(input, output, session) {
 
   ###close round1
   observeEvent(input$close1,{
+    stats<-stats()
     #create CV map per ES of projects
     img_assetid_ind<-"projects/eu-wendy/assets/es_mapping/es_map_ind"
     img_assetid_all <- "projects/eu-wendy/assets/es_mapping/es_map_all/"
@@ -596,7 +597,7 @@ function(input, output, session) {
 
   ###open round2
   observeEvent(input$open2,{
-    stud_new<-studies%>%filter(siteID == input$studID_in)
+    stud_new<-studies%>%filter(siteID == input$studID_in)%>%first()
     stud_new$siteSTATUS <-"round2_open"
     stud_new$siteCREATETIME<-Sys.time()
     # Execute the update query

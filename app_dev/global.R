@@ -40,23 +40,6 @@ on_max<-3000
 off_min<-500
 off_max<-10000
 
-# con <- dbConnect(
-#   bigrquery::bigquery(),
-#   project = "publicdata",
-#   dataset = "samples",
-#   billing = ""
-# )
-
-# con <- dbConnect(
-#   bigrquery::bigquery(),
-#   project = "rgee-381312",
-#   dataset = "data_base",
-#   billing = "rgee-381312"
-# )
-# es_all<-tbl(con, "test")
-
-
-## country map
 cntr<-gisco_get_countries(year = "2020",
                           epsg = "4326",
                           cache = TRUE,
@@ -101,3 +84,5 @@ es_descr<-es_descr%>%collect()
 studies<-tbl(con,"study_site")
 studies<-studies%>%collect()
 studies$siteCREATETIME<-as.POSIXct(studies$siteCREATETIME)
+
+ee_Initialize("reto.spielhofer@nina.no")
