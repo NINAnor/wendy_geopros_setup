@@ -267,7 +267,8 @@ function(input, output, session) {
   ## save poly in wendy gee asset
 
   siteID<-eventReactive(input$savepoly,{
-    siteID<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
+    nchar<-round(runif(1,8,13),0)
+    siteID<-stri_rand_strings(1, nchar, pattern = "[A-Za-z0-9]")
   })
 
   study_area<-eventReactive(input$savepoly,{
