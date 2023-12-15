@@ -1,5 +1,8 @@
 function(input, output, session) {
 
+  hideTab(inputId = "inTabset", target = "p1")
+  hideTab(inputId = "inTabset", target = "fin_1")
+
   output$cond_b1<-renderUI({
     validate(
       need(input$projtype != "", 'Provide a projtype'),
@@ -7,13 +10,18 @@ function(input, output, session) {
       need(input$proj_descr != '', 'Provide a proj description')
     )
     tagList(
-      actionButton('sub1', 'confirm', class='btn-primary'),
-      uiOutput("type_dep")
+      actionButton('sub1', 'confirm', class='btn-primary')
+
     )
 
   })
 
   observeEvent(input$sub1,{
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p1")
+    hideTab(inputId = "inTabset",
+            target = "p0")
+    showTab(inputId = "inTabset", target = "p1")
 
     if(input$projtype == "onshore"){
       output$type_dep<-renderUI(
@@ -32,12 +40,6 @@ function(input, output, session) {
         )
       )
     }
-    removeUI(selector = "#projtype")
-    removeUI(selector = "#proj_nat_name")
-    removeUI(selector = "#proj_nat_name-label")
-    removeUI(selector = "#proj_descr")
-    removeUI(selector = "#proj_descr-label")
-    removeUI(selector = "#sub1")
   })
 
   output$cntr_text<-renderText("Select your country of interest")
@@ -47,7 +49,6 @@ function(input, output, session) {
                         leafmap=map_cntr,
                         id="map_sel_cntry")
 
-      # cntry_sel<-mapedit::selectMap(map_cntr)
   observe({
     cntry_sel<-cntry_sel()
     if(nrow(cntry_sel==1)){
@@ -77,11 +78,6 @@ function(input, output, session) {
       rv$offshore_sel<-callModule(module = editMod,
                              leafmap=map_coast,
                              id="sel_offshore")
-
-   # offshore_sel<-mapedit::editMap(map_coast)
-
-
-
 
   sel_country<-eventReactive(input$save_countr,{
     cntry_sel<-cntry_sel()
@@ -334,18 +330,6 @@ function(input, output, session) {
 
     task_tab$start()
 
-    ## upload as bq spatial table to WENDY google cloud
-    # geo <- sf_geojson(study_area, atomise = TRUE)
-    # st_write(study_area,"test.geojson")
-    # geo1 <- sf_geojson(study_area, atomise = FALSE)
-    # geo_js_df <- as.data.frame(geojson_wkt(geo))
-    # str(geo)
-    #
-    # players_table = bq_table(project = "rgee-381312", dataset = "data_base", table = "test_new")
-
-
-    #
-
     insertUI(selector = "#savepoly", where = "afterEnd",
              ui=tagList(
                # textOutput("proj_id"),
@@ -405,10 +389,14 @@ function(input, output, session) {
   })
 
   observeEvent(input$save_es,{
+
+    updateTabsetPanel(session, "inTabset",
+                      selected = "fin_1")
+    hideTab(inputId = "inTabset",
+            target = "p1")
+    showTab(inputId = "inTabset", target = "fin_1")
     siteID<-siteID()
     study_area<-study_area()
-
-
 
     study_area$siteSTATUS<-"round1_open"
     study_area$siteNMAPPING<-as.integer(input$n_es)
@@ -416,9 +404,6 @@ function(input, output, session) {
     selected_es <- es_descr[input$es_descr_rows_selected,  ]
     selected_es$siteID<-rep(siteID,nrow(selected_es))
     #save selected es in tab
-    # file <-paste("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/setup_230710/", Sys.Date(), "_es.csv", sep = "")
-    # write.csv(selected_es, file, row.names = FALSE)
-    # bq_table_upload(es_study, selected_es)
     insert_upload_job("eu-wendy", "integrated_wendy", "es_study", selected_es)
 
     ## save study area info
@@ -427,20 +412,12 @@ function(input, output, session) {
     insert_upload_job("eu-wendy", "integrated_wendy", "study_site", study_area)
 
     ### clean ui
-    removeUI(selector = "#es_descr")
-    removeUI(selector = "#save_es")
-    removeUI(selector = "#cond_save_es")
-    removeUI(selector = "#n_es")
-    removeUI(selector = "#cond_save_es2")
 
-    output$cond_save_es3<-renderUI(
-      h4(
-        paste0("Your study area has been saved please note the following study id: ",
-               study_area$siteID,
-               " which is used for the mapping of ecosystem services and your study management")))
-
-
-
+    output$id_note<-renderText(
+      paste0("Your study area has been saved please note the following study id: ",
+                  siteID,
+                  " which is used for the mapping of ecosystem services and your study management")
+    )
   })
 
  ############# tab 2 check and modify status
