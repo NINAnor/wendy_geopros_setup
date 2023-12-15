@@ -36,9 +36,9 @@ con <- dbConnect(
 
 ## define on - offshore min-max area km2
 on_min<-50
-on_max<-3000
+on_max<-1000
 off_min<-500
-off_max<-10000
+off_max<-2000
 
 cntr<-gisco_get_countries(year = "2020",
                           epsg = "4326",
