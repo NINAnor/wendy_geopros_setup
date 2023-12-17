@@ -9,7 +9,7 @@ fluidPage(
                        br(),
                        textInput("proj_descr","A short description of the study area"),
                        br(),
-                       textInput("stud_proj","To which research project is the area linked?"),
+                       numericInput("stud_proj","If available, provide the NINA internal project number the study site is linked to",0),
                        br(),
                        selectInput("projtype","What kind of study area is it?",choices = c("","onshore","offshore"), selected = ""),
                        uiOutput("cond_b1")

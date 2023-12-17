@@ -396,10 +396,12 @@ function(input, output, session) {
             target = "p1")
     showTab(inputId = "inTabset", target = "fin_1")
     siteID<-siteID()
+
     study_area<-study_area()
 
     study_area$siteSTATUS<-"round1_open"
     study_area$siteNMAPPING<-as.integer(input$n_es)
+    study_area$projID<-as.integer(input$stud_proj)
 
     selected_es <- es_descr[input$es_descr_rows_selected,  ]
     selected_es$siteID<-rep(siteID,nrow(selected_es))
