@@ -55,10 +55,6 @@ cntr<-gisco_get_countries(year = "2020",
 coast<-gisco_get_coastallines()
 
 
-# coast<-st_read("R:/GeoSpatialData/SeaRegions/World_oceans/Original/ne_10m_ocean/ne_10m_ocean.shp")
-# bbcoast<-st_as_sfc(st_bbox(c(-20.742171, 28.025439, 43.066422, 72.61762)),crs = st_crs(coast))
-# sea<-st_crop(bbcoast,coast)
-
 map_cntr<- leaflet() %>%
   addProviderTiles(provider= "CartoDB.Positron")%>%
   addFeatures(st_sf(cntr), layerId = ~cntr$CNTR_ID)
@@ -77,13 +73,7 @@ map_coast<- leaflet(st_sf(coast)) %>%
                  singleFeature = FALSE,
                  editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
 
-
+ee_Initialize("reto.spielhofer@nina.no")
 
 es_descr<-tbl(con, "es_descr")
 es_descr<-es_descr%>%collect()
-
-# studies<-tbl(con,"study_site")
-# studies<-studies%>%collect()
-# studies$siteCREATETIME<-as.POSIXct(studies$siteCREATETIME)
-
-ee_Initialize("reto.spielhofer@nina.no")

@@ -27,11 +27,7 @@ fluidPage(
                        uiOutput("cond_b2"),
 
                        uiOutput("status_ui")
-                       ),
-              tabPanel(title = "Consite", value = "p4",
-                       h5("You can now proceed within the consite tool to balance natural values and energy production")
-              )
-
+                       )
                       )
 
 )#/page
