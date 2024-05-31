@@ -5,9 +5,9 @@ function(input, output, session) {
 
   output$cond_b1<-renderUI({
     validate(
-      need(input$projtype != "", 'Provide a projtype'),
-      need(input$proj_nat_name != '', 'Provide a project name'),
-      need(input$proj_descr != '', 'Provide a proj description')
+      need(input$sitetype != "", 'choose a site type'),
+      need(input$site_nat_name != '', 'Provide a site name'),
+      need(input$site_descr != '', 'Provide a site description')
     )
     tagList(
       actionButton('sub1', 'confirm', class='btn-primary')
@@ -23,7 +23,7 @@ function(input, output, session) {
             target = "p0")
     showTab(inputId = "inTabset", target = "p1")
 
-    if(input$projtype == "onshore"){
+    if(input$sitetype == "onshore"){
       output$type_dep<-renderUI(
         tagList(
           textOutput("cntr_text"),
@@ -31,7 +31,7 @@ function(input, output, session) {
           uiOutput("cond_cntry")
         )
       )
-    }else if(input$projtype == "offshore"){
+    }else if(input$sitetype == "offshore"){
       output$type_dep<-renderUI(
         tagList(
           mapedit::editModUI("sel_offshore"),
@@ -171,7 +171,7 @@ function(input, output, session) {
             actionButton("savepoly","save area")
           )
           output$overlay_result <- renderText({
-            paste0("Your area is ",area, " km2, Save your area now")
+            paste0("Your area is ",area, " km2, Save your area")
 
           })
         }
@@ -260,47 +260,17 @@ function(input, output, session) {
 
   })
 
-  ## save poly in wendy gee asset
+  ## save geom in bq
 
   siteID<-eventReactive(input$savepoly,{
     nchar<-round(runif(1,8,13),0)
     siteID<-stri_rand_strings(1, nchar, pattern = "[A-Za-z0-9]")
   })
 
-  study_area<-eventReactive(input$savepoly,{
-    req(siteID)
-    siteID<-siteID()
-
-    if(input$projtype=="onshore"){
-      study_area<-rv$onshore_sel()$finished
-      sel_country<-sel_country()
-      study_area<-study_area%>%select()
-      study_area$cntrID<-sel_country$ISO3_CODE
-    }else{
-      study_area<-rv$offshore_sel()$finished
-      study_area<-study_area%>%select()
-      study_area$cntrID<-"off"
-    }
-
-    study_area$siteID<-siteID
-    study_area$siteAREAkm2<-as.integer(round(as.numeric(st_area(study_area))/1000000,0))
-
-    study_area$siteTYPE <-input$projtype
-    study_area$siteNAME <-input$proj_nat_name
-    study_area$siteDESCR <-input$proj_descr
-
-    study_area$siteCREATOR <-Sys.getenv("USERNAME")
-
-    study_area$siteCREATETIME<-Sys.time()
-    study_area
-
-
-  })
 
   observeEvent(input$savepoly,{
-    req(study_area)
-    study_area<-study_area()
-    if(input$projtype=="onshore"){
+
+    if(input$sitetype=="onshore"){
 
       removeUI(selector = paste0("#sel_onshore","-map"))
       removeUI(
@@ -311,24 +281,6 @@ function(input, output, session) {
       removeUI(
         selector = "#overlay_result2")
     }
-
-    ee_study<-study_area
-    ee_study$siteCREATETIME<-as.character(ee_study$siteCREATETIME)
-    ee_study<-sf_as_ee(ee_study)
-
-
-    ## save geom on gee
-    assetId<-paste0("projects/eu-wendy/assets/study_sites/",as.character(study_area$siteID))
-    # ee_study <- ee_study$set('siteID', as.character(study_area$siteID),
-    #                              'cntrID', as.character(study_area$cntrID))
-    start_time<-Sys.time()
-    task_tab <- ee_table_to_asset(
-      collection = ee_study,
-      description = "test upload study area",
-      assetId = assetId
-    )
-
-    task_tab$start()
 
     insertUI(selector = "#savepoly", where = "afterEnd",
              ui=tagList(
@@ -389,29 +341,52 @@ function(input, output, session) {
   })
 
   observeEvent(input$save_es,{
-
+    show_modal_spinner(
+      text = "update data base"
+    )
     updateTabsetPanel(session, "inTabset",
                       selected = "fin_1")
     hideTab(inputId = "inTabset",
             target = "p1")
     showTab(inputId = "inTabset", target = "fin_1")
+
+    req(siteID)
     siteID<-siteID()
 
-    study_area<-study_area()
 
-    study_area$siteSTATUS<-"round1_open"
-    study_area$siteNMAPPING<-as.integer(input$n_es)
-    study_area$projID<-as.integer(input$stud_proj)
 
-    selected_es <- es_descr[input$es_descr_rows_selected,  ]
-    selected_es$siteID<-rep(siteID,nrow(selected_es))
-    #save selected es in tab
-    insert_upload_job("eu-wendy", "integrated_wendy", "es_study", selected_es)
+    if(input$sitetype=="onshore"){
+      study_area<-rv$onshore_sel()$finished
+      sel_country<-sel_country()
+      study_area<-study_area%>%select()
+      study_area$siteID<-siteID
+      study_area$projID<-"pareus"
+      study_area$cntrID<-sel_country$ISO3_CODE
+    }else{
+      study_area<-rv$offshore_sel()$finished
+      study_area<-study_area%>%select()
+      study_area$cntrID<-"off"
+    }
 
-    ## save study area info
-    study_area<-as.data.frame(study_area%>%st_drop_geometry())
+    study_area$siteLANG <- as.character("ENGLISH")
+    study_area$siteN_es<-input$n_es
 
-    insert_upload_job("eu-wendy", "integrated_wendy", "study_site", study_area)
+    study_area$siteNAME<-input$site_nat_name
+    study_area$siteDESCR<-input$site_descr
+    study_area$siteSTATUS<-as.integer(1)
+    study_area$siteTYPE <-as.character(input$sitetype)
+    study_area$siteAREAkm2<-as.integer(round(as.numeric(st_area(study_area))/1000000,0))
+    study_area$siteCREATETIME<-Sys.time()
+    study_area$siteCREATOR <-Sys.getenv("USERNAME")
+    polygons<-study_area%>%st_drop_geometry()
+    polygons$geometry<-st_as_text(study_area$geometry)
+    # #
+    # # #save it on bq
+    poly_table = bq_table(project = project, dataset = dataset, table = 'studSite')
+    bq_table_upload(x = poly_table, values = polygons, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')
+
+    remove_modal_spinner()
+
 
     ### clean ui
 
@@ -423,273 +398,273 @@ function(input, output, session) {
   })
 
  ############# tab 2 check and modify status
-  studies<-eventReactive(input$studID_in,{
-    studies<-tbl(con,"study_site")
-    studies<-studies%>%collect()
-  })
-
-  actual_stat<-eventReactive(input$studID_in,{
-    req(studies)
-    studies<-studies()
-    actual_stat<-as.character(studies%>%filter(siteID == input$studID_in)%>%
-                                arrange(desc(as.POSIXct(siteCREATETIME)))%>%first()%>%
-                                select(siteSTATUS))
-
-  })
-
-  observeEvent(input$studID_in,{
-    req(actual_stat)
-    studies<-studies()
-    actual_stat<-actual_stat()
-
-    if(input$studID_in %in% studies$siteID){
-      output$cond_b2<-renderUI({
-        tagList(
-          h5(paste0("The study ",input$studID_in, " has status: ",actual_stat)),
-          actionButton("check_study","check status"),
-          uiOutput("cond_b3")
-          )
-      })
-    }else{
-      output$cond_b2<-renderUI({
-        h5("invalid study id")
-      })
-    }
-  })
-
-  stats<-eventReactive(input$check_study,{
-    actual_stat<-actual_stat()
-    if(actual_stat == "round1_open"){
-      stats<-tbl(con, "es_mappingR1")
-      a<-as.character(input$studID_in)
-      stats<-stats%>%filter(siteID == a & poss_mapping == "Yes")%>%
-        group_by(esID)%>%summarise(n_maps = n_distinct(userID))%>%collect()
-    }else if(actual_stat == "round2_open"){
-      stats<-tbl(con, "es_mappingR2")
-      a<-as.character(input$studID_in)
-      stats<-stats%>%filter(siteID == a & map_adjust == "Yes")%>%
-        group_by(esID)%>%summarise(n_maps = n_distinct(userID))%>%collect()
-
-    }
-  })
-
-  observeEvent(input$check_study,{
-    req(stats)
-    actual_stat<-actual_stat()
-    stats<-stats()
-    removeUI(selector = "#studID_in")
-
-    if(actual_stat == "round1_open"){
-
-      output$cond_b3<-renderUI({
-        ui=tagList(
-          tableOutput('status_r1')%>%withSpinner(),
-          uiOutput("cond_b4")
-        )
-      })
-      output$status_r1 <- renderTable({as.data.frame(stats)})
-      removeUI(selector = "#check_study")
-      if(min(stats$n_maps)<2){
-        output$cond_b4<-renderUI({
-          "To close round 1, at least 2 maps per ES are needed"
-        })
-      }else{
-        output$cond_b4<-renderUI({
-          tagList(
-            h5("If you want, you can now close round 1"),
-            actionButton("close1","close round 1")
-          )
-
-        })
-      }
-
-
-    ## status 2
-    }else if(actual_stat == "round1_closed"){
-      output$cond_b3<-renderUI({
-        ui=tagList(
-          h5("Postprocessing of R1 is done, you can open R2"),
-          actionButton("open2","open round2")
-        )
-      })
-    }else if(actual_stat == "round2_open"){
-      output$cond_b3<-renderUI({
-        ui=tagList(
-          tableOutput('status_r2')%>%withSpinner(),
-          uiOutput("cond_b4")
-        )
-      })
-      output$status_r2 <- renderTable({as.data.frame(stats)})
-      removeUI(selector = "#check_study")
-
-      if(min(stats$n_maps)<2){
-        output$cond_b4<-renderUI({
-          "To close round 2, at least 2 maps per ES are needed"
-        })
-      }else{
-        output$cond_b4<-renderUI({
-          tagList(
-            h5("If you want, you can now close round 2"),
-            actionButton("close2","close round 2")
-          )
-
-        })
-      }
-    }else{
-      output$cond_b3<-renderUI({
-        ui=tagList(
-          h5("Round 2 is closed and postprocessed")
-        )
-      })
-    }
-
-  })
-
-  ###close round1
-  observeEvent(input$close1,{
-    stats<-stats()
-    studies<-studies()
-    #create CV map per ES of projects
-    img_assetid_ind<-"projects/eu-wendy/assets/es_mapping/es_map_ind"
-    img_assetid_all <- "projects/eu-wendy/assets/es_mapping/es_map_all/"
-
-    ## study geom from siteID
-    stud_geom_id <- paste0('projects/eu-wendy/assets/study_sites/', input$studID_in)
-    stud_geom <- ee$FeatureCollection(stud_geom_id)
-    sf_stud_geom<-ee_as_sf(stud_geom)
-    coords <- st_coordinates(sf_stud_geom)
-    coords<-as.data.frame(coords[,c(1,2)])
-
-    geometry <- ee$Geometry$Rectangle(
-      coords = c(min(coords$X), min(coords$Y), max(coords$X), max(coords$Y)),
-      proj = "EPSG:4326",
-      geodesic = FALSE
-    )
-
-
-    for(n in 1: nrow(stats)){
-      esID<-stats$esID[n]
-
-      es_col<-ee$ImageCollection(img_assetid_ind)$select("probability")$filter(
-        ee$Filter$eq("esID",esID))$filter(
-          ee$Filter$eq("siteID",as.character(input$studID_in)))$filter(ee$Filter$eq("delphi_round",1))
-
-
-      es_mean <- es_col$reduce(ee$Reducer$mean())$reproject(
-        crs= 'EPSG:4326',
-        scale= 100
-      )
-
-      es_stdDev = es_col$reduce(ee$Reducer$stdDev())$reproject(
-        crs= 'EPSG:4326',
-        scale= 100
-      )
-      es_coef_var = es_stdDev$divide(es_mean)
-
-      # img_id<-paste0(img_assetid,"test")
-      img_id<-paste0(img_assetid_all, as.character(input$studID_in),"_",esID,"CV_1")
-      #
-      # #set features of img
-      es_coef_var <- es_coef_var$set('esID', esID,
-                                   'siteID', as.character(input$studID_in),
-                                   'delphi_round', 1,
-                                   'stats', "CV")
-
-      task_img <- ee_image_to_asset(
-        # image = es_coef_var$select("probability_stdDev"),
-        image = es_coef_var,
-        assetId = img_id,
-        overwrite = T,
-        region = geometry
-      )
-
-      task_img$start()
-    }
-
-    #overwrite status in DB
-    stud_new<-studies%>%filter(siteID == input$studID_in)
-    stud_new$siteSTATUS <-"round1_closed"
-    stud_new$siteCREATETIME<-Sys.time()
-    # Execute the update query
-    insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
-
-  })
-
-  ###open round2
-  observeEvent(input$open2,{
-    studies<-studies()
-    stud_new<-studies%>%filter(siteID == input$studID_in)%>%first()
-    stud_new$siteSTATUS <-"round2_open"
-    stud_new$siteCREATETIME<-Sys.time()
-    # Execute the update query
-    insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
-
-  })
-
-  ###close round2
-  observeEvent(input$close2,{
-    studies<-studies()
-
-    img_assetid_ind<-"projects/eu-wendy/assets/es_mapping/es_map_ind"
-    img_assetid_all <- "projects/eu-wendy/assets/es_mapping/es_map_all/"
-
-    ## study geom from siteID
-    stud_geom_id <- paste0('projects/eu-wendy/assets/study_sites/', input$studID_in)
-    stud_geom <- ee$FeatureCollection(stud_geom_id)
-    sf_stud_geom<-ee_as_sf(stud_geom)
-    coords <- st_coordinates(sf_stud_geom)
-    coords<-as.data.frame(coords[,c(1,2)])
-
-    geometry <- ee$Geometry$Rectangle(
-      coords = c(min(coords$X), min(coords$Y), max(coords$X), max(coords$Y)),
-      proj = "EPSG:4326",
-      geodesic = FALSE
-    )
-
-
-    for(n in 1: nrow(stats)){
-      esID<-stats$esID[n]
-
-      es_col<-ee$ImageCollection(img_assetid_ind)$select("probability")$filter(
-        ee$Filter$eq("esID",esID))$filter(
-          ee$Filter$eq("siteID",as.character(input$studID_in)))$filter(ee$Filter$eq("delphi_round",2))
-
-
-      es_mean <- es_col$reduce(ee$Reducer$mean())$reproject(
-        crs= 'EPSG:4326',
-        scale= 100
-      )
-
-      es_stdDev = es_col$reduce(ee$Reducer$stdDev())$reproject(
-        crs= 'EPSG:4326',
-        scale= 100
-      )
-      es_coef_var = es_stdDev$divide(es_mean)
-      img_id<-paste0(img_assetid_all, as.character(input$studID_in),"_",esID,"CV_2")
-      #
-      # #set features of img
-      es_coef_var <- es_coef_var$set('esID', esID,
-                                     'siteID', as.character(input$studID_in),
-                                     'delphi_round', 2,
-                                     'stats', "CV")
-
-      task_img <- ee_image_to_asset(
-        # image = es_coef_var$select("probability_stdDev"),
-        image = es_coef_var,
-        assetId = img_id,
-        overwrite = T,
-        region = geometry
-      )
-
-      task_img$start()
-    }
-
-    stud_new<-studies%>%filter(siteID == input$studID_in)%>%first()
-    stud_new$siteSTATUS <-"round2_closed"
-    stud_new$siteCREATETIME<-Sys.time()
-    # Execute the update query
-    insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
-
-  })
+  # studies<-eventReactive(input$studID_in,{
+  #   studies<-tbl(con,"study_site")
+  #   studies<-studies%>%collect()
+  # })
+  #
+  # actual_stat<-eventReactive(input$studID_in,{
+  #   req(studies)
+  #   studies<-studies()
+  #   actual_stat<-as.character(studies%>%filter(siteID == input$studID_in)%>%
+  #                               arrange(desc(as.POSIXct(siteCREATETIME)))%>%first()%>%
+  #                               select(siteSTATUS))
+  #
+  # })
+  #
+  # observeEvent(input$studID_in,{
+  #   req(actual_stat)
+  #   studies<-studies()
+  #   actual_stat<-actual_stat()
+  #
+  #   if(input$studID_in %in% studies$siteID){
+  #     output$cond_b2<-renderUI({
+  #       tagList(
+  #         h5(paste0("The study ",input$studID_in, " has status: ",actual_stat)),
+  #         actionButton("check_study","check status"),
+  #         uiOutput("cond_b3")
+  #         )
+  #     })
+  #   }else{
+  #     output$cond_b2<-renderUI({
+  #       h5("invalid study id")
+  #     })
+  #   }
+  # })
+  #
+  # stats<-eventReactive(input$check_study,{
+  #   actual_stat<-actual_stat()
+  #   if(actual_stat == "round1_open"){
+  #     stats<-tbl(con, "es_mappingR1")
+  #     a<-as.character(input$studID_in)
+  #     stats<-stats%>%filter(siteID == a & poss_mapping == "Yes")%>%
+  #       group_by(esID)%>%summarise(n_maps = n_distinct(userID))%>%collect()
+  #   }else if(actual_stat == "round2_open"){
+  #     stats<-tbl(con, "es_mappingR2")
+  #     a<-as.character(input$studID_in)
+  #     stats<-stats%>%filter(siteID == a & map_adjust == "Yes")%>%
+  #       group_by(esID)%>%summarise(n_maps = n_distinct(userID))%>%collect()
+  #
+  #   }
+  # })
+  #
+  # observeEvent(input$check_study,{
+  #   req(stats)
+  #   actual_stat<-actual_stat()
+  #   stats<-stats()
+  #   removeUI(selector = "#studID_in")
+  #
+  #   if(actual_stat == "round1_open"){
+  #
+  #     output$cond_b3<-renderUI({
+  #       ui=tagList(
+  #         tableOutput('status_r1')%>%withSpinner(),
+  #         uiOutput("cond_b4")
+  #       )
+  #     })
+  #     output$status_r1 <- renderTable({as.data.frame(stats)})
+  #     removeUI(selector = "#check_study")
+  #     if(min(stats$n_maps)<2){
+  #       output$cond_b4<-renderUI({
+  #         "To close round 1, at least 2 maps per ES are needed"
+  #       })
+  #     }else{
+  #       output$cond_b4<-renderUI({
+  #         tagList(
+  #           h5("If you want, you can now close round 1"),
+  #           actionButton("close1","close round 1")
+  #         )
+  #
+  #       })
+  #     }
+  #
+  #
+  #   ## status 2
+  #   }else if(actual_stat == "round1_closed"){
+  #     output$cond_b3<-renderUI({
+  #       ui=tagList(
+  #         h5("Postprocessing of R1 is done, you can open R2"),
+  #         actionButton("open2","open round2")
+  #       )
+  #     })
+  #   }else if(actual_stat == "round2_open"){
+  #     output$cond_b3<-renderUI({
+  #       ui=tagList(
+  #         tableOutput('status_r2')%>%withSpinner(),
+  #         uiOutput("cond_b4")
+  #       )
+  #     })
+  #     output$status_r2 <- renderTable({as.data.frame(stats)})
+  #     removeUI(selector = "#check_study")
+  #
+  #     if(min(stats$n_maps)<2){
+  #       output$cond_b4<-renderUI({
+  #         "To close round 2, at least 2 maps per ES are needed"
+  #       })
+  #     }else{
+  #       output$cond_b4<-renderUI({
+  #         tagList(
+  #           h5("If you want, you can now close round 2"),
+  #           actionButton("close2","close round 2")
+  #         )
+  #
+  #       })
+  #     }
+  #   }else{
+  #     output$cond_b3<-renderUI({
+  #       ui=tagList(
+  #         h5("Round 2 is closed and postprocessed")
+  #       )
+  #     })
+  #   }
+  #
+  # })
+  #
+  # ###close round1
+  # observeEvent(input$close1,{
+  #   stats<-stats()
+  #   studies<-studies()
+  #   #create CV map per ES of projects
+  #   img_assetid_ind<-"projects/eu-wendy/assets/es_mapping/es_map_ind"
+  #   img_assetid_all <- "projects/eu-wendy/assets/es_mapping/es_map_all/"
+  #
+  #   ## study geom from siteID
+  #   stud_geom_id <- paste0('projects/eu-wendy/assets/study_sites/', input$studID_in)
+  #   stud_geom <- ee$FeatureCollection(stud_geom_id)
+  #   study_area<-ee_as_sf(stud_geom)
+  #   coords <- st_coordinates(study_area)
+  #   coords<-as.data.frame(coords[,c(1,2)])
+  #
+  #   geometry <- ee$Geometry$Rectangle(
+  #     coords = c(min(coords$X), min(coords$Y), max(coords$X), max(coords$Y)),
+  #     proj = "EPSG:4326",
+  #     geodesic = FALSE
+  #   )
+  #
+  #
+  #   for(n in 1: nrow(stats)){
+  #     esID<-stats$esID[n]
+  #
+  #     es_col<-ee$ImageCollection(img_assetid_ind)$select("probability")$filter(
+  #       ee$Filter$eq("esID",esID))$filter(
+  #         ee$Filter$eq("siteID",as.character(input$studID_in)))$filter(ee$Filter$eq("delphi_round",1))
+  #
+  #
+  #     es_mean <- es_col$reduce(ee$Reducer$mean())$reproject(
+  #       crs= 'EPSG:4326',
+  #       scale= 100
+  #     )
+  #
+  #     es_stdDev = es_col$reduce(ee$Reducer$stdDev())$reproject(
+  #       crs= 'EPSG:4326',
+  #       scale= 100
+  #     )
+  #     es_coef_var = es_stdDev$divide(es_mean)
+  #
+  #     # img_id<-paste0(img_assetid,"test")
+  #     img_id<-paste0(img_assetid_all, as.character(input$studID_in),"_",esID,"CV_1")
+  #     #
+  #     # #set features of img
+  #     es_coef_var <- es_coef_var$set('esID', esID,
+  #                                  'siteID', as.character(input$studID_in),
+  #                                  'delphi_round', 1,
+  #                                  'stats', "CV")
+  #
+  #     task_img <- ee_image_to_asset(
+  #       # image = es_coef_var$select("probability_stdDev"),
+  #       image = es_coef_var,
+  #       assetId = img_id,
+  #       overwrite = T,
+  #       region = geometry
+  #     )
+  #
+  #     task_img$start()
+  #   }
+  #
+  #   #overwrite status in DB
+  #   stud_new<-studies%>%filter(siteID == input$studID_in)
+  #   stud_new$siteSTATUS <-"round1_closed"
+  #   stud_new$siteCREATETIME<-Sys.time()
+  #   # Execute the update query
+  #   insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
+  #
+  # })
+  #
+  # ###open round2
+  # observeEvent(input$open2,{
+  #   studies<-studies()
+  #   stud_new<-studies%>%filter(siteID == input$studID_in)%>%first()
+  #   stud_new$siteSTATUS <-"round2_open"
+  #   stud_new$siteCREATETIME<-Sys.time()
+  #   # Execute the update query
+  #   insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
+  #
+  # })
+  #
+  # ###close round2
+  # observeEvent(input$close2,{
+  #   studies<-studies()
+  #
+  #   img_assetid_ind<-"projects/eu-wendy/assets/es_mapping/es_map_ind"
+  #   img_assetid_all <- "projects/eu-wendy/assets/es_mapping/es_map_all/"
+  #
+  #   ## study geom from siteID
+  #   stud_geom_id <- paste0('projects/eu-wendy/assets/study_sites/', input$studID_in)
+  #   stud_geom <- ee$FeatureCollection(stud_geom_id)
+  #   study_area<-ee_as_sf(stud_geom)
+  #   coords <- st_coordinates(study_area)
+  #   coords<-as.data.frame(coords[,c(1,2)])
+  #
+  #   geometry <- ee$Geometry$Rectangle(
+  #     coords = c(min(coords$X), min(coords$Y), max(coords$X), max(coords$Y)),
+  #     proj = "EPSG:4326",
+  #     geodesic = FALSE
+  #   )
+  #
+  #
+  #   for(n in 1: nrow(stats)){
+  #     esID<-stats$esID[n]
+  #
+  #     es_col<-ee$ImageCollection(img_assetid_ind)$select("probability")$filter(
+  #       ee$Filter$eq("esID",esID))$filter(
+  #         ee$Filter$eq("siteID",as.character(input$studID_in)))$filter(ee$Filter$eq("delphi_round",2))
+  #
+  #
+  #     es_mean <- es_col$reduce(ee$Reducer$mean())$reproject(
+  #       crs= 'EPSG:4326',
+  #       scale= 100
+  #     )
+  #
+  #     es_stdDev = es_col$reduce(ee$Reducer$stdDev())$reproject(
+  #       crs= 'EPSG:4326',
+  #       scale= 100
+  #     )
+  #     es_coef_var = es_stdDev$divide(es_mean)
+  #     img_id<-paste0(img_assetid_all, as.character(input$studID_in),"_",esID,"CV_2")
+  #     #
+  #     # #set features of img
+  #     es_coef_var <- es_coef_var$set('esID', esID,
+  #                                    'siteID', as.character(input$studID_in),
+  #                                    'delphi_round', 2,
+  #                                    'stats', "CV")
+  #
+  #     task_img <- ee_image_to_asset(
+  #       # image = es_coef_var$select("probability_stdDev"),
+  #       image = es_coef_var,
+  #       assetId = img_id,
+  #       overwrite = T,
+  #       region = geometry
+  #     )
+  #
+  #     task_img$start()
+  #   }
+  #
+  #   stud_new<-studies%>%filter(siteID == input$studID_in)%>%first()
+  #   stud_new$siteSTATUS <-"round2_closed"
+  #   stud_new$siteCREATETIME<-Sys.time()
+  #   # Execute the update query
+  #   insert_upload_job("eu-wendy", "integrated_wendy", "study_site", stud_new)
+  #
+  # })
 
 }

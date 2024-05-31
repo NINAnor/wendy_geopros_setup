@@ -3,10 +3,8 @@ library(leaflet)
 library(mapedit)
 library(sf)
 library(dplyr)
-library(rgee)
 library(DT)
 library(shinyjs)
-library(shinycssloaders)
 library(leafem)
 library(tibble)
 library(leafpop)
@@ -23,15 +21,34 @@ library(DBI)
 library(shinyjs)
 library(shinyBS)
 library(giscoR)
+library(shinybusy)
 
 ## change this to wendy
-bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/eu-wendy-92974cdf189d.json")
-con <- dbConnect(
-  bigrquery::bigquery(),
-  project = "eu-wendy",
-  dataset = "integrated_wendy",
-  billing = "eu-wendy"
+### BQ connection to store rectangles
+bq_auth(
+  path = "bq-r.json"
 )
+
+env<-"dev"
+project<-"pareus"
+var_lang<-"en"
+dataset <- paste0(project,"_",env)
+# dataset <- "admin_data"
+
+con_admin<-data.frame(
+  project = project,
+  dataset = dataset,
+  billing = project
+)
+
+
+con_admin <- dbConnect(
+  bigrquery::bigquery(),
+  project = con_admin$project,
+  dataset = con_admin$dataset,
+  billing = con_admin$billing
+)
+
 
 
 
@@ -51,6 +68,7 @@ cntr<-gisco_get_countries(year = "2020",
                           spatialtype = "RG",
                           country = NULL,
                           region = "Europe")
+cntr<-cntr%>%filter(CNTR_ID != "RU")
 
 coast<-gisco_get_coastallines()
 
@@ -73,7 +91,7 @@ map_coast<- leaflet(st_sf(coast)) %>%
                  singleFeature = FALSE,
                  editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
 
-ee_Initialize("reto.spielhofer@nina.no")
 
-es_descr<-tbl(con, "es_descr")
+
+es_descr<-tbl(con_admin, "es_descr")
 es_descr<-es_descr%>%collect()
