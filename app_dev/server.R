@@ -390,10 +390,17 @@ function(input, output, session) {
 
     ### clean ui
 
-    output$id_note<-renderText(
-      paste0("Your study area has been saved please note the following study id: ",
-                  siteID,
-                  " which is used for the mapping of ecosystem services and your study management")
+    output$id_note<-renderUI(
+      tagList(
+        br(),
+        # "Your study has been saved. Please note down the following study id: ",
+        HTML(paste0("Your study has been saved. Please note down the following study id: <strong>",siteID,"</strong> <br> You need it to invite participants to map ecosystem services and to manage your study"),
+             # " You need it to invite participants to map ecosystem services and to manage your study"
+      )
+      # paste0("Your study area has been saved. Please note the following study id: ",
+      #             siteID,
+      #             " which is used for the mapping of ecosystem services and your study management")
+    )
     )
   })
 

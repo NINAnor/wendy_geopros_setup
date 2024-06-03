@@ -19,7 +19,7 @@ fluidPage(
               tabPanel(title = "Create a new project", value = "p1",
                        uiOutput("type_dep")),
               tabPanel(title = "Create a new project", value = "fin_1",
-                       textOutput("id_note")),
+                       uiOutput("id_note")),
               # tabPanel(title = "Explore & manage studies", value = "p2",
               #          h5("Insert your study  ID to inspect and modify the study status"),
               #          br(),
