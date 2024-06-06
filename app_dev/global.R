@@ -26,13 +26,13 @@ library(shinybusy)
 ## change this to wendy
 ### BQ connection to store rectangles
 bq_auth(
-  path = "bq-r.json"
+  path = "bq_wendy.json"
 )
 
 env<-"dev"
-project<-"pareus"
+project<-"eu-wendy"
 var_lang<-"en"
-dataset <- paste0(project,"_",env)
+dataset <- "wendy_dev"
 # dataset <- "admin_data"
 
 con_admin<-data.frame(
@@ -95,3 +95,15 @@ map_coast<- leaflet(st_sf(coast)) %>%
 
 es_descr<-tbl(con_admin, "es_descr")
 es_descr<-es_descr%>%collect()
+
+admins<-tbl(con_admin,"siteADMIN")
+admins<-admins%>%collect()
+
+
+# admin_data <- data.frame(
+#   admin_name = c("Admin1", "Admin2", "Admin3"),
+#   admin_mail = c("admin1@example.com", "admin2@example.com", "admin3@example.com")
+# )
+#
+# poly_table = bq_table(project = "eu-wendy", dataset = "wendy_dev", table = 'siteADMIN')
+# bq_table_upload(x = poly_table, values = admin_data, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')

@@ -1,7 +1,38 @@
 function(input, output, session) {
 
   hideTab(inputId = "inTabset", target = "p1")
-  hideTab(inputId = "inTabset", target = "fin_1")
+  hideTab(inputId = "inTabset", target = "p1A")
+  hideTab(inputId = "inTabset", target = "p1B")
+
+
+  #check user name
+  observeEvent(input$check1,{
+    if(input$user_name %in% admins$admin_name){
+      output$cond0<-renderUI({
+        actionButton("login","login")
+
+      })
+      removeUI(
+        selector = "#check1"
+      )
+      removeUI(
+        selector = "#user_name"
+      )
+    }else{
+      output$cond0<-renderUI({
+        "you do not have access to the tool, plese contact admin@consite.com"
+      })
+    }
+  })
+
+  observeEvent(input$login,{
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p1")
+    hideTab(inputId = "inTabset",
+            target = "p0")
+    showTab(inputId = "inTabset", target = "p1")
+  })
+
 
   output$cond_b1<-renderUI({
     validate(
@@ -18,10 +49,10 @@ function(input, output, session) {
 
   observeEvent(input$sub1,{
     updateTabsetPanel(session, "inTabset",
-                      selected = "p1")
+                      selected = "p1A")
     hideTab(inputId = "inTabset",
-            target = "p0")
-    showTab(inputId = "inTabset", target = "p1")
+            target = "p1")
+    showTab(inputId = "inTabset", target = "p1A")
 
     if(input$sitetype == "onshore"){
       output$type_dep<-renderUI(
@@ -345,10 +376,10 @@ function(input, output, session) {
       text = "update data base"
     )
     updateTabsetPanel(session, "inTabset",
-                      selected = "fin_1")
+                      selected = "p1B")
     hideTab(inputId = "inTabset",
-            target = "p1")
-    showTab(inputId = "inTabset", target = "fin_1")
+            target = "p1A")
+    showTab(inputId = "inTabset", target = "p1B")
 
     req(siteID)
     siteID<-siteID()
@@ -377,12 +408,12 @@ function(input, output, session) {
     study_area$siteTYPE <-as.character(input$sitetype)
     study_area$siteAREAkm2<-as.integer(round(as.numeric(st_area(study_area))/1000000,0))
     study_area$siteCREATETIME<-Sys.time()
-    study_area$siteCREATOR <-Sys.getenv("USERNAME")
+    study_area$siteCREATOR <-input$user_name
     polygons<-study_area%>%st_drop_geometry()
     polygons$geometry<-st_as_text(study_area$geometry)
     # #
     # # #save it on bq
-    poly_table = bq_table(project = project, dataset = dataset, table = 'studSite')
+    poly_table = bq_table(project = project, dataset = dataset, table = 'studSITE')
     bq_table_upload(x = poly_table, values = polygons, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')
 
     remove_modal_spinner()
@@ -405,10 +436,10 @@ function(input, output, session) {
   })
 
  ############# tab 2 check and modify status
-  # studies<-eventReactive(input$studID_in,{
-  #   studies<-tbl(con,"study_site")
-  #   studies<-studies%>%collect()
-  # })
+  studies<-eventReactive(input$checkstud,{
+    studies<-tbl(con,"studSITE")
+    studies<-studies%>%collect()
+  })
   #
   # actual_stat<-eventReactive(input$studID_in,{
   #   req(studies)
