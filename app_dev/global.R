@@ -21,6 +21,7 @@ library(DBI)
 library(shinyjs)
 library(shinyBS)
 library(giscoR)
+library(googleCloudStorageR)
 library(shinybusy)
 
 ## change this to wendy
@@ -28,6 +29,11 @@ library(shinybusy)
 bq_auth(
   path = "bq_wendy.json"
 )
+
+gcs_auth("bq_wendy.json")
+
+source("mod_manage_study.R")
+# source("app_dev/mod_manage_studies.R")
 
 env<-"dev"
 project<-"eu-wendy"

@@ -24,12 +24,7 @@ fluidPage(
               tabPanel(title = "Create a conSITE project", value = "p1B",
                        uiOutput("id_note")),
               tabPanel(title = "Explore & manage studies", value = "p2",
-                       h5("Insert your study  ID to inspect and modify the study status"),
-                       br(),
-                       textInput("studID_in",""),
-                       actionButton("checkstud","check status"),
-                       uiOutput("cond_b2"),
-                       uiOutput("status_ui")
+                       mod_manage_study_ui("manage_projects")
                        )
                       )
 

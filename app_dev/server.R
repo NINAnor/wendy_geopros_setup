@@ -391,7 +391,7 @@ function(input, output, session) {
       sel_country<-sel_country()
       study_area<-study_area%>%select()
       study_area$siteID<-siteID
-      study_area$projID<-"pareus"
+      study_area$projID<-"eu-wendy"
       study_area$cntrID<-sel_country$ISO3_CODE
     }else{
       study_area<-rv$offshore_sel()$finished
@@ -403,7 +403,7 @@ function(input, output, session) {
     study_area$siteN_es<-input$n_es
 
     study_area$siteNAME<-input$site_nat_name
-    study_area$siteDESCR<-input$site_descr
+    # study_area$siteDESCR<-input$site_descr
     study_area$siteSTATUS<-as.integer(1)
     study_area$siteTYPE <-as.character(input$sitetype)
     study_area$siteAREAkm2<-as.integer(round(as.numeric(st_area(study_area))/1000000,0))
@@ -436,10 +436,11 @@ function(input, output, session) {
   })
 
  ############# tab 2 check and modify status
-  studies<-eventReactive(input$checkstud,{
-    studies<-tbl(con,"studSITE")
-    studies<-studies%>%collect()
-  })
+  # studies<-eventReactive(input$checkstud,{
+  #   studies<-tbl(con,"studSITE")
+  #   studies<-studies%>%collect()
+  # })
+  mod_manage_study_server("manage_projects")
   #
   # actual_stat<-eventReactive(input$studID_in,{
   #   req(studies)
