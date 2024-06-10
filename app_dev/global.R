@@ -23,6 +23,7 @@ library(shinyBS)
 library(giscoR)
 library(googleCloudStorageR)
 library(shinybusy)
+library(terra)
 
 ## change this to wendy
 ### BQ connection to store rectangles
@@ -33,7 +34,6 @@ bq_auth(
 gcs_auth("bq_wendy.json")
 
 source("mod_manage_study.R")
-# source("app_dev/mod_manage_studies.R")
 
 env<-"dev"
 project<-"eu-wendy"
@@ -54,9 +54,6 @@ con_admin <- dbConnect(
   dataset = con_admin$dataset,
   billing = con_admin$billing
 )
-
-
-
 
 ## define on - offshore min-max area km2
 on_min<-50
@@ -105,11 +102,3 @@ es_descr<-es_descr%>%collect()
 admins<-tbl(con_admin,"siteADMIN")
 admins<-admins%>%collect()
 
-
-# admin_data <- data.frame(
-#   admin_name = c("Admin1", "Admin2", "Admin3"),
-#   admin_mail = c("admin1@example.com", "admin2@example.com", "admin3@example.com")
-# )
-#
-# poly_table = bq_table(project = "eu-wendy", dataset = "wendy_dev", table = 'siteADMIN')
-# bq_table_upload(x = poly_table, values = admin_data, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')

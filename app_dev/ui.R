@@ -14,8 +14,6 @@ fluidPage(
                        br(),
                        textInput("site_descr","A short description of the study area"),
                        br(),
-                       # numericInput("stud_proj","If available, provide the NINA internal project number the study site is linked to",0),
-                       br(),
                        selectInput("sitetype","What kind of study area is it?",choices = c("","onshore","offshore"), selected = ""),
                        uiOutput("cond_b1")
               ),
