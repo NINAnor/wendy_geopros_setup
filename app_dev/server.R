@@ -414,6 +414,12 @@ function(input, output, session) {
     poly_table = bq_table(project = project, dataset = dataset, table = 'studSITE')
     bq_table_upload(x = poly_table, values = polygons, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')
 
+    ## save it in a bucket
+    bucket_name<-"stud_areas"
+    file_name <-paste0(input$site_nat_name)
+    gcs_upload(polygons, bucket_name, name = file_name, predefinedAcl = "bucketLevel")
+
+
     remove_modal_spinner()
 
 
