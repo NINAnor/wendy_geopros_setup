@@ -411,7 +411,7 @@ function(input, output, session) {
     polygons<-study_area%>%st_drop_geometry()
     polygons$geometry<-st_as_text(study_area$geometry)
     # # #save it on bq
-    poly_table = bq_table(project = project, dataset = dataset, table = 'studSITE')
+    poly_table = bq_table(project = project, dataset = dataset, table = 'study_site')
     bq_table_upload(x = poly_table, values = polygons, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')
 
     ## save it in a bucket
