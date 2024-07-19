@@ -416,8 +416,10 @@ function(input, output, session) {
 
     ## save it in a bucket
     bucket_name<-"stud_areas"
-    file_name <-paste0(input$site_nat_name)
-    gcs_upload(polygons, bucket_name, name = file_name, predefinedAcl = "bucketLevel")
+    file_name <-paste0(input$site_nat_name,".csv")
+    tmp <- tempfile()
+    write.csv(polygons, file = tmp, row.names = FALSE)
+    gcs_upload(tmp, bucket_name, name = file_name, predefinedAcl = "bucketLevel")
 
 
     remove_modal_spinner()
