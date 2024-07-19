@@ -37,8 +37,8 @@ function(input, output, session) {
   output$cond_b1<-renderUI({
     validate(
       need(input$sitetype != "", 'choose a site type'),
-      need(input$site_nat_name != '', 'Provide a site name'),
-      need(input$site_descr != '', 'Provide a site description')
+      need(input$site_nat_name != '', 'Provide a site description'),
+      need(input$siteID != '', 'Provide a site ID')
     )
     tagList(
       actionButton('sub1', 'confirm', class='btn-primary')
@@ -291,12 +291,12 @@ function(input, output, session) {
 
   })
 
-  ## save geom in bq
+  ## siteID generation not used for wendy
 
-  siteID<-eventReactive(input$savepoly,{
-    nchar<-round(runif(1,8,13),0)
-    siteID<-stri_rand_strings(1, nchar, pattern = "[A-Za-z0-9]")
-  })
+  # siteID<-eventReactive(input$savepoly,{
+  #   nchar<-round(runif(1,8,13),0)
+  #   siteID<-stri_rand_strings(1, nchar, pattern = "[A-Za-z0-9]")
+  # })
 
 
   observeEvent(input$savepoly,{
@@ -380,9 +380,9 @@ function(input, output, session) {
     hideTab(inputId = "inTabset",
             target = "p1A")
     showTab(inputId = "inTabset", target = "p1B")
-
-    req(siteID)
-    siteID<-siteID()
+#
+#     req(siteID)
+#     siteID<-siteID()
 
 
 
@@ -390,7 +390,8 @@ function(input, output, session) {
       study_area<-rv$onshore_sel()$finished
       sel_country<-sel_country()
       study_area<-study_area%>%select()
-      study_area$siteID<-siteID
+      # study_area$siteID<-siteID
+      study_area$siteID<-input$siteID
       study_area$projID<-"eu-wendy"
       study_area$cntrID<-sel_country$ISO3_CODE
     }else{
@@ -416,7 +417,7 @@ function(input, output, session) {
 
     ## save it in a bucket
     bucket_name<-"stud_areas"
-    file_name <-paste0(input$site_nat_name,".csv")
+    file_name <-paste0(input$siteID,".csv")
     tmp <- tempfile()
     write.csv(polygons, file = tmp, row.names = FALSE)
     gcs_upload(tmp, bucket_name, name = file_name, predefinedAcl = "bucketLevel")
@@ -431,7 +432,7 @@ function(input, output, session) {
       tagList(
         br(),
         # "Your study has been saved. Please note down the following study id: ",
-        HTML(paste0("Your study has been saved. Please note down the following study id: <strong>",siteID,"</strong> <br> You need it to invite participants to map ecosystem services and to manage your study"),
+        HTML(paste0("Your study has been saved. Please note down the following study id: <strong>",input$siteID,"</strong> <br> You need it to invite participants to map ecosystem services and to manage your study"),
       )
     )
     )

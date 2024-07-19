@@ -10,9 +10,9 @@ fluidPage(
                        br(),
                        h5("Here you can create a new study area to map ecosystem services."),
                        br(),
-                       textInput("site_nat_name","Provide a short name of the study area no blank spaces"),
+                       textInput("siteID","Provide a short name of the study area no blank spaces"),
                        br(),
-                       textInput("site_descr","A short description of the study area"),
+                       textInput("site_nat_name","A longer readable name of the study area"),
                        br(),
                        selectInput("sitetype","What kind of study area is it?",choices = c("","onshore","offshore"), selected = ""),
                        uiOutput("cond_b1")
