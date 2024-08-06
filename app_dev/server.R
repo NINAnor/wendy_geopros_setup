@@ -20,7 +20,7 @@ function(input, output, session) {
       )
     }else{
       output$cond0<-renderUI({
-        "you do not have access to the tool, plese contact admin@consite.com"
+        "you do not have access to the tool, plese contact admin@geoprospective.com"
       })
     }
   })
@@ -415,12 +415,12 @@ function(input, output, session) {
     poly_table = bq_table(project = project, dataset = dataset, table = 'study_site')
     bq_table_upload(x = poly_table, values = polygons, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')
 
-    ## save it in a bucket
-    bucket_name<-"stud_areas"
-    file_name <-paste0(input$siteID,".csv")
-    tmp <- tempfile()
-    write.csv(polygons, file = tmp, row.names = FALSE)
-    gcs_upload(tmp, bucket_name, name = file_name, predefinedAcl = "bucketLevel")
+    # ## save it in a bucket
+    # bucket_name<-"stud_areas"
+    # file_name <-paste0(input$siteID,".csv")
+    # tmp <- tempfile()
+    # write.csv(polygons, file = tmp, row.names = FALSE)
+    # gcs_upload(tmp, bucket_name, name = file_name, predefinedAcl = "bucketLevel")
 
 
     remove_modal_spinner()
