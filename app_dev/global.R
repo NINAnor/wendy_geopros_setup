@@ -24,6 +24,8 @@ library(giscoR)
 library(googleCloudStorageR)
 library(shinybusy)
 library(terra)
+library(bsicons)
+library(bslib)
 
 ## change this to wendy
 ### BQ connection to store rectangles
@@ -35,10 +37,10 @@ gcs_auth("bq_wendy.json")
 
 source("mod_manage_study.R")
 
-env<-"dev"
+env<-"prod"
 project<-"eu-wendy"
 var_lang<-"en"
-dataset <- "wendy_dev"
+dataset <- paste0("wendy_",env)
 # dataset <- "admin_data"
 
 con_admin<-data.frame(
@@ -55,11 +57,16 @@ con_admin <- dbConnect(
   billing = con_admin$billing
 )
 
+orange = "#ffa626"
+blue = "#53adc9"
+green = "#50b330"
+
+
 ## define on - offshore min-max area km2
 on_min<-50
-on_max<-1000
+on_max<-5000
 off_min<-500
-off_max<-2000
+off_max<-15000
 
 cntr<-gisco_get_countries(year = "2020",
                           epsg = "4326",
@@ -74,6 +81,7 @@ cntr<-gisco_get_countries(year = "2020",
 cntr<-cntr%>%filter(CNTR_ID != "RU")
 
 coast<-gisco_get_coastallines()
+# coast<-st_read("data/eez_v12_sel.gpkg")
 
 
 map_cntr<- leaflet() %>%
@@ -96,9 +104,8 @@ map_coast<- leaflet(st_sf(coast)) %>%
 
 
 
-es_descr<-tbl(con_admin, "es_descr")
-es_descr<-es_descr%>%collect()
+# es_descr<-tbl(con_admin, "es_descr")
+# es_descr<-es_descr%>%collect()
 
-admins<-tbl(con_admin,"siteADMIN")
-admins<-admins%>%collect()
+
 

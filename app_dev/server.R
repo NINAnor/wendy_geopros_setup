@@ -6,8 +6,18 @@ function(input, output, session) {
 
 
   #check user name
+  admins<-eventReactive(input$check1,{
+    admins<-tbl(con_admin,"study_admin")
+    admins<-admins%>%collect()%>%filter(active == TRUE)
+  })
+
   observeEvent(input$check1,{
-    if(input$user_name %in% admins$admin_name){
+    show_modal_spinner(
+      text = "check your access"
+    )
+    req(admins)
+    admins<-admins()
+    if(input$user_name %in% admins$userName){
       output$cond0<-renderUI({
         actionButton("login","login")
 
@@ -20,9 +30,19 @@ function(input, output, session) {
       )
     }else{
       output$cond0<-renderUI({
-        "you do not have access to the tool, plese contact admin@geoprospective.com"
+        "you do not have access to create a new study. Please use this form to request a user."
       })
     }
+    remove_modal_spinner()
+  })
+
+
+
+  sel_inst<-eventReactive(input$login,{
+    req(admins)
+    admins<-admins()
+    sel_inst<-admins%>%filter(userName == input$user_name)%>%select(institution)
+
   })
 
   observeEvent(input$login,{
@@ -37,8 +57,8 @@ function(input, output, session) {
   output$cond_b1<-renderUI({
     validate(
       need(input$sitetype != "", 'choose a site type'),
-      need(input$site_nat_name != '', 'Provide a site description'),
-      need(input$siteID != '', 'Provide a site ID')
+      need(input$site_nat_name != '', 'Provide a descriptive site title'),
+      need(input$siteID != '', 'Provide a site ID (no blank spaces)')
     )
     tagList(
       actionButton('sub1', 'confirm', class='btn-primary')
@@ -57,17 +77,36 @@ function(input, output, session) {
     if(input$sitetype == "onshore"){
       output$type_dep<-renderUI(
         tagList(
-          textOutput("cntr_text"),
-          mapedit::selectModUI("map_sel_cntry"),
-          uiOutput("cond_cntry")
+          bslib::value_box(
+            title="",
+            value = "",
+            h4(textOutput("cntr_text")),
+            mapedit::selectModUI("map_sel_cntry"),
+            uiOutput("cond_cntry"),
+            br(),
+            showcase = bs_icon("globe-europe-africa"),
+            theme = value_box_theme(bg = "white", fg = "black")
+          ),
+
         )
       )
     }else if(input$sitetype == "offshore"){
       output$type_dep<-renderUI(
         tagList(
-          mapedit::editModUI("sel_offshore"),
-          htmlOutput("overlay_result2"),
-          uiOutput("btn2"),
+          bslib::value_box(
+            title="",
+            value = "",
+            h4("Draw your study region as a rectangle within the maritime zones"),
+            br(),
+            h4("Make sure that you define the study region in a way that your focus area for wind energy development is in the center and that you have approx. min of 30km between wind development area and closest study border."),
+
+            mapedit::editModUI("map_sel_offshore"),
+            htmlOutput("overlay_result2"),
+            uiOutput("btn2"),
+            br(),
+            showcase = bs_icon("globe-europe-africa"),
+            theme = value_box_theme(bg = "white", fg = "black")
+          ),
         )
       )
     }
@@ -76,7 +115,7 @@ function(input, output, session) {
   output$cntr_text<-renderText("Select your country of interest")
   #country map
 
-      cntry_sel <- callModule(module=selectMod,
+  cntry_sel <- callModule(module=selectMod,
                         leafmap=map_cntr,
                         id="map_sel_cntry")
 
@@ -94,7 +133,7 @@ function(input, output, session) {
       ## render text min  / max 1 cntry
       output$cond_cntry<-renderUI(
         tagList(
-          h5("please select min and max 1 country")
+          h5("please select a country. It is not possible to select more than one country")
         )
       )
     }
@@ -108,7 +147,7 @@ function(input, output, session) {
 
       rv$offshore_sel<-callModule(module = editMod,
                              leafmap=map_coast,
-                             id="sel_offshore")
+                             id="map_sel_offshore")
 
   sel_country<-eventReactive(input$save_countr,{
     cntry_sel<-cntry_sel()
@@ -141,7 +180,16 @@ function(input, output, session) {
 
     output$cntry_dep<-renderUI(
       tagList(
-        "Draw your region of interest within the country borders",
+        bslib::value_box(
+          title = "",
+          value = "",
+          h4("Draw your study region as a rectangle within the country borders"),
+          br(),
+          h4("Make sure that you define the study region in a way that your focus area for wind energy development is in the center and that you have approx. min of 30km between wind development area and closest study border."),
+        showcase = bs_icon("exclamation-octagon-fill"),
+        theme = value_box_theme(bg = orange, fg = "black")
+      ),
+        "",
         mapedit::editModUI("sel_onshore"),
         htmlOutput("overlay_result"),
         uiOutput("btn1"),
@@ -291,100 +339,18 @@ function(input, output, session) {
 
   })
 
-  ## siteID generation not used for wendy
-
-  # siteID<-eventReactive(input$savepoly,{
-  #   nchar<-round(runif(1,8,13),0)
-  #   siteID<-stri_rand_strings(1, nchar, pattern = "[A-Za-z0-9]")
-  # })
 
 
   observeEvent(input$savepoly,{
 
-    if(input$sitetype=="onshore"){
-
-      removeUI(selector = paste0("#sel_onshore","-map"))
-      removeUI(
-        selector = "#overlay_result")
-
-    }else{
-      removeUI(selector = paste0("#sel_offshore","-map"))
-      removeUI(
-        selector = "#overlay_result2")
-    }
-
-    insertUI(selector = "#savepoly", where = "afterEnd",
-             ui=tagList(
-               # textOutput("proj_id"),
-               br(),
-               h5("Click on the ecosystem services that are relevant to map in your study area"),
-               br(),
-               DT::dataTableOutput('es_descr'),
-               #
-               uiOutput("cond_save_es")
-             ))
-
-    removeUI(
-      selector = "#savepoly")
-
-
-  })
-
-  output$es_descr <- renderDT({
-      datatable(es_descr, selection = 'multiple', options = list(pageLength = 15))
-
-
-  })
-
-  observe({
-    req(input$es_descr_rows_selected)
-
-    if(length(input$es_descr_rows_selected)!=0){
-      n_es_vec<-c("",1:length(input$es_descr_rows_selected))
-      output$cond_save_es<-renderUI(
-        tagList(
-          selectInput("n_es","how many es should each participant map", n_es_vec, selected = ""),
-          uiOutput("cond_save_es2")
-        )
-      )
-    }else{
-      output$cond_save_es<-renderUI(
-        h5("select at least one es")
-      )
-    }
-  })
-
-  observe({
-    req(input$n_es)
-
-    if(input$n_es!=""){
-      output$cond_save_es2<-renderUI(
-        tagList(
-          actionButton("save_es", "save selection"),
-          uiOutput("cond_save_es3")
-        )
-      )
-    }else{
-      output$cond_save_es2<-renderUI(
-        h5("select a number of ES to be mapped")
-      )
-    }
-  })
-
-  observeEvent(input$save_es,{
     show_modal_spinner(
-      text = "update data base"
+      text = "save your study area on our servers"
     )
     updateTabsetPanel(session, "inTabset",
                       selected = "p1B")
     hideTab(inputId = "inTabset",
             target = "p1A")
     showTab(inputId = "inTabset", target = "p1B")
-#
-#     req(siteID)
-#     siteID<-siteID()
-
-
 
     if(input$sitetype=="onshore"){
       study_area<-rv$onshore_sel()$finished
@@ -400,30 +366,38 @@ function(input, output, session) {
       study_area$cntrID<-"off"
     }
 
-    study_area$siteLANG <- as.character("ENGLISH")
-    study_area$siteN_es<-input$n_es
 
-    study_area$siteNAME<-input$site_nat_name
-    study_area$siteSTATUS<-as.integer(1)
-    study_area$siteTYPE <-as.character(input$sitetype)
-    study_area$siteAREAkm2<-as.integer(round(as.numeric(st_area(study_area))/1000000,0))
-    study_area$siteCREATETIME<-Sys.time()
-    study_area$siteCREATOR <-input$user_name
+    study_area$PART_N_ES<-as.numeric(input$n_es)
+    study_area$NAME<-input$site_nat_name
+    study_area$STATUS<-as.integer(1)
+    study_area$TYPE <-as.character(input$sitetype)
+    study_area$AREAkm2<-as.integer(round(as.numeric(st_area(study_area))/1000000,0))
+    study_area$CREATETIME<-Sys.time()
+    study_area$CREATOR <-input$user_name
+    study_area$RESP_INSTITUT
+    study_area$LANG<-input$language
     polygons<-study_area%>%st_drop_geometry()
     polygons$geometry<-st_as_text(study_area$geometry)
     # # #save it on bq
     poly_table = bq_table(project = project, dataset = dataset, table = 'study_site')
     bq_table_upload(x = poly_table, values = polygons, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')
 
-    # ## save it in a bucket
-    # bucket_name<-"stud_areas"
-    # file_name <-paste0(input$siteID,".csv")
-    # tmp <- tempfile()
-    # write.csv(polygons, file = tmp, row.names = FALSE)
-    # gcs_upload(tmp, bucket_name, name = file_name, predefinedAcl = "bucketLevel")
-
 
     remove_modal_spinner()
+
+
+
+  })
+
+  observeEvent(input$save_es,{
+
+#
+#     req(siteID)
+#     siteID<-siteID()
+
+
+
+
 
 
     ### clean ui
