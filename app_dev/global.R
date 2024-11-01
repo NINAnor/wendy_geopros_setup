@@ -46,7 +46,7 @@ gcs_auth("bq_wendy.json")
 gcs_global_bucket(bucket_name)
 
 source("mod_manage_study.R")
-source("ahp_function.R")
+source("functions.R")
 
 
 dataset <- paste0("wendy_",env)

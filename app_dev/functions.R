@@ -96,4 +96,18 @@ perform_ahp_update_db <- function(es_pair, con_admin, studyID){
 
 }
 
+influence_rating_summary<-function(es_dist, con_admin, studyID){
+  ## group by es id summary mean, min, max
+  rating_grp<-es_dist%>%group_by(esID)%>%summarise(min_rating = min(impact_val),
+                                                   max_rating = max(impact_val),
+                                                   mean_rating = mean(impact_val),
+                                                   counts = n())
+
+  rating = bq_table(project = "eu-wendy", dataset = dataset, table = 'rating_impact_grp')
+  bq_table_upload(x = rating, values = rating_grp, create_disposition='CREATE_IF_NEEDED', write_disposition='WRITE_APPEND')
+
+
+
+}
+
 

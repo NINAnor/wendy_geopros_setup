@@ -173,9 +173,13 @@ mod_manage_study_server <- function(id){
 
       ### AHP calculation
       es_pair <- tbl(con_admin, "es_pair")
-      es_pair <- select(es_pair, ES_left,ES_right,selection_text,selection_val,userID,siteID,ahp_section) %>%filter(siteID == input$site_id)%>% collect()
+      es_pair <- es_pair%>%select(es_pair, ES_left,ES_right,selection_text,selection_val,userID,siteID,ahp_section) %>%filter(siteID == input$site_id)%>% collect()
       perform_ahp_update_db(es_pair = es_pair, con_admin = con_admin, studyID = input$site_id)
 
+      ### rated impacts for dist
+      es_dist <-tbl(con_admin, "es_impact")
+      es_dist<-es_dist%>%filter(siteID == input$site_id)%>% collect()
+      influence_rating_summary(es_dist = es_dist, con_admin = con_admin, studyID = input$site_id)
 
 
       site_updated = bq_table(project = "eu-wendy", dataset = dataset, table = 'study_site')
