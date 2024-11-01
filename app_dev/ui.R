@@ -57,7 +57,7 @@ fluidPage(
                        bslib::value_box(
                          title="",
                          value = "",
-                         h4("Planned number of participants"),
+                         h4("Ecosystem service maps per participant"),
                          br(),
                          h5("The study consists of a total of ten different ecosystem services to map with participants. It might take approx. 10 min for a participant to map one ecosystem service, maybe much less."),
                          h5("However, to optimize your study, please indicate how many ecosystem services each participant should map as a maximum. In other words how much time do you want to spend participants with the study?"),
@@ -103,7 +103,7 @@ fluidPage(
                        uiOutput("type_dep")),
               tabPanel(title = "Create a new study area", value = "p1B",
                        uiOutput("id_note")),
-              tabPanel(title = "Assess mapping progress", value = "p2",
+              tabPanel(title = "Manage mapping study", value = "p2",
                        mod_manage_study_ui("manage_projects")
                        )
                       )

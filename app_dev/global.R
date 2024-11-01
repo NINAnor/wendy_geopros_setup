@@ -26,20 +26,29 @@ library(shinybusy)
 library(terra)
 library(bsicons)
 library(bslib)
+library(irr)
+
 
 ## change this to wendy
 ### BQ connection to store rectangles
+env<-"prod"
+project<-"eu-wendy"
+var_lang<-"en"
+bqprojID<-"wendy"
 bq_auth(
   path = "bq_wendy.json"
 )
 
+
+#bucket
+bucket_name<-paste0(bqprojID,"_geopros_",env)
 gcs_auth("bq_wendy.json")
+gcs_global_bucket(bucket_name)
 
 source("mod_manage_study.R")
+source("ahp_function.R")
 
-env<-"prod"
-project<-"eu-wendy"
-var_lang<-"en"
+
 dataset <- paste0("wendy_",env)
 # dataset <- "admin_data"
 

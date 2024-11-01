@@ -30,7 +30,7 @@ function(input, output, session) {
       )
     }else{
       output$cond0<-renderUI({
-        "you do not have access to create a new study. Please use this form to request a user."
+        h5("You do not have access to create a new study. Please use this form to request a user.")
       })
     }
     remove_modal_spinner()
